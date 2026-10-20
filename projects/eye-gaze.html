@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hands-Free Proportional Control Through Eye Gaze · Mohammed Naeem Nairokh</title>
+  <meta name="description" content="A low-cost webcam interface that turns where a person looks into a proportional control signal, evaluated on a ball-and-beam task.">
+  <meta name="author" content="Mohammed Naeem Nairokh">
+  <link rel="canonical" href="https://naeemnairo.github.io/biomedical/projects/eye-gaze.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Mohammed Naeem Nairokh">
+  <meta property="og:title" content="Hands-Free Proportional Control Through Eye Gaze · Mohammed Naeem Nairokh">
+  <meta property="og:description" content="A low-cost webcam interface that turns where a person looks into a proportional control signal, evaluated on a ball-and-beam task.">
+  <meta property="og:url" content="https://naeemnairo.github.io/biomedical/projects/eye-gaze.html">
+  <meta property="og:image" content="https://naeemnairo.github.io/biomedical/assets/img/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Mohammed Naeem Nairokh, Biomedical Engineer">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#0e1011">
+  <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="../assets/fonts/serif-600.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../assets/fonts/sans-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/main.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header is-sticky">
+    <div class="container nav">
+      <a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">MN</span><span>Mohammed Naeem Nairokh</span></a>
+      <nav aria-label="Main"><ul class="nav-links"><li><a href="../index.html">Home</a></li><li><a href="../work.html">Work</a></li><li><a href="../experience.html">Experience</a></li><li><a href="../about.html">About</a></li><li><a href="../resume.html">Résumé</a></li></ul></nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="page-head"><div class="container">
+      <a class="back" href="../work.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg> All work</a>
+      <p class="eyebrow" style="margin-top:12px">Assistive and biomedical</p><h1>Hands-Free Proportional Control Through Eye Gaze</h1>
+      <p class="lede">A low-cost webcam interface that turns where a person looks into a proportional control signal, evaluated on a ball-and-beam task.</p>
+    </div></section>
+    <section class="section" style="padding-top:40px"><div class="container detail">
+      <div class="detail-main">
+        <figure class="card figure"><img src="../assets/img/eye-gaze.svg" alt="Diagram: webcam, eye landmarks, gaze estimate and beam angle" width="800" height="450"><figcaption>How the interface works: a webcam image, facial and eye landmarks, a gaze estimate, then a proportional command to the beam. Illustration.</figcaption></figure>
+        <div><h2>The question</h2><p>People with limited hand function often need expensive, dedicated eye trackers to control a device. Can a standard webcam give smooth, proportional control instead of simple on/off commands?</p></div>
+        <div><h2>What I built</h2><p>A Python interface that uses MediaPipe to find facial and eye landmarks in each webcam frame and OpenCV to process the image. The estimated gaze position is mapped to a proportional control signal that sets the angle of a beam in a ball-and-beam task, a classic control benchmark where the goal is to hold the ball steady.</p></div>
+        <div><h2>Why ball-and-beam</h2><p>The task is unstable, so it shows clearly whether the control signal is smooth and fast enough. It also connects to my work adapting a ball-and-beam platform into a rehabilitation tool in the University of New Haven Instrumentation Laboratory.</p></div>
+        <p class="note">Results are in the manuscript, which is currently under review. They will be added here once it is published.</p>
+      </div>
+      <aside class="card detail-aside">
+        <dl>
+          <div><dt>Status</dt><dd>Manuscript under review</dd></div>
+          <div><dt>Main fact</dt><dd>1 webcam: no dedicated eye-tracking hardware needed</dd></div>
+          <div><dt>Tools</dt><dd>Python, MediaPipe, OpenCV, Control systems</dd></div>
+          <div><dt>Area</dt><dd>Assistive and biomedical</dd></div>
+        </dl>
+      </aside>
+    </div></section>
+  </main>
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>© <span data-year>2026</span> Mohammed Naeem Nairokh</p>
+      <ul class="footer-links">
+        <li><a href="mailto:naeemniro@gmail.com">Email</a></li>
+        <li><a href="https://www.linkedin.com/in/naeem-nairo" rel="noopener">LinkedIn</a></li>
+        <li><a href="https://github.com/NaeemNairo" rel="noopener">GitHub</a></li>
+        <li><a href="../resume.html">Résumé</a></li>
+      </ul>
+    </div>
+  </footer>
+  <dialog class="lightbox" id="lightbox" aria-labelledby="lightbox-title">
+    <div class="lightbox-bar"><p id="lightbox-title">Certificate</p><button class="lightbox-close" type="button" aria-label="Close"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">
+  </dialog>
+</body>
+</html>
