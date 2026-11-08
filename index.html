@@ -63,6 +63,7 @@
 
     <nav class="section-bar" aria-label="Sections on this page">
       <div class="container"><ul>
+        <li><a href="#neurogrip">NeuroGrip</a></li>
         <li><a href="#experience">Experience</a></li>
         <li><a href="#projects">Projects</a></li>
         <li><a href="#publications">Publications</a></li>
@@ -70,6 +71,21 @@
         <li><a href="#contact">Contact</a></li>
       </ul></div>
     </nav>
+
+    <section class="section" id="neurogrip" aria-labelledby="ng-title">
+      <div class="container">
+        <div class="section-head"><div><p class="eyebrow">Featured project · live demo</p><h2 id="ng-title">NeuroGrip</h2><p class="ng-sub">Intelligent EMG-Based Robotic Hand Control</p></div>
+          <a class="link-more" href="projects/emg-robotic-hand.html">Read the project <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+        <p class="ng-lede">A 3D-printed, 11-degree-of-freedom robotic hand that I control in real time from 8 channels of forearm EMG, using a neural network trained in PyTorch. Try it below: pick a movement and follow the muscle signal through the network to the motor that moves the hand. Or open the joint simulator to see how each finger's linkage moves.</p>
+        <div class="ng-tabs" role="tablist" aria-label="NeuroGrip demos">
+          <button class="ng-tab" role="tab" id="ng-tab-net" aria-selected="true" aria-controls="ng-frame" data-src="demos/emg-network/index.html#embed" data-mode="auto">EMG network</button>
+          <button class="ng-tab" role="tab" id="ng-tab-sim" aria-selected="false" aria-controls="ng-frame" data-src="demos/hand-simulator/index.html#embed" data-mode="fixed">Joint simulator</button>
+          <a class="ng-open" id="ng-open" href="demos/emg-network/index.html">Open full screen ↗</a>
+        </div>
+        <div class="card ng-stage"><iframe id="ng-frame" title="NeuroGrip interactive demo" src="demos/emg-network/index.html#embed" loading="lazy"></iframe></div>
+        <p class="ng-note">Runs in your browser with the hand's real 3D model. Network activations in the demo are illustrative.</p>
+      </div>
+    </section>
 
     <section class="section" id="experience" aria-labelledby="exp-title">
       <div class="container">
@@ -112,17 +128,6 @@
         <div class="section-head"><div><p class="eyebrow">Projects</p><h2 id="proj-title">Selected projects</h2></div>
           <a class="link-more" href="work.html">All work <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
         <div class="project-grid">
-          <article class="card hoverable project featured reveal">
-            <div class="project-media"><img src="assets/img/emg-hand.jpg" alt="Neural network layers lighting up from EMG input, next to the 3D model of the robotic hand" width="800" height="450" loading="lazy"></div>
-            <div class="project-body">
-              <p class="project-cat">Neural interfaces and robotics</p>
-              <h3>EMG-Controlled 11-DOF Robotic Hand</h3>
-              <p>A 3D-printed robotic hand I control in real time from forearm muscle signals, using a neural network trained in PyTorch.</p>
-              <div class="big-fact"><strong>11 DOF</strong><span>Controlled in real time from 8 EMG channels</span></div>
-              <ul class="tags" aria-label="Tools"><li>PyTorch</li><li>EMG</li><li>Arduino</li><li>3D printing</li></ul>
-              <a class="link-more" href="projects/emg-robotic-hand.html">Read more<span class="sr-only"> about the EMG-Controlled 11-DOF Robotic Hand</span> <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-            </div>
-          </article>
           <article class="card hoverable project reveal">
             <div class="project-media"><img src="assets/img/eye-gaze.svg" alt="Diagram: webcam, eye landmarks, gaze estimate and beam angle" width="800" height="450" loading="lazy"></div>
             <div class="project-body">
@@ -257,5 +262,19 @@
     <div class="lightbox-bar"><p id="lightbox-title">Certificate</p><button class="lightbox-close" type="button" aria-label="Close"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">
   </dialog>
+<script>
+  // NeuroGrip demo tabs: same-origin iframe, so the network demo can be sized to its content
+  (function(){
+    var frame=document.getElementById("ng-frame"), open=document.getElementById("ng-open"), tabs=document.querySelectorAll(".ng-tab"), mode="auto";
+    function fit(){ try { if (mode==="auto") { var d=frame.contentDocument; if (d && d.body) frame.style.height=(d.documentElement.scrollHeight)+"px"; } else frame.style.height=""; } catch(e){} }
+    frame.addEventListener("load", function(){ fit(); setTimeout(fit,800); try { new ResizeObserver(fit).observe(frame.contentDocument.body); } catch(e){} });
+    window.addEventListener("resize", fit);
+    tabs.forEach(function(t){ t.addEventListener("click", function(){
+      tabs.forEach(function(x){ x.setAttribute("aria-selected", x===t ? "true" : "false"); });
+      mode=t.dataset.mode; frame.classList.toggle("is-fixed", mode==="fixed"); frame.style.height="";
+      frame.src=t.dataset.src; open.href=t.dataset.src.replace("#embed","");
+    }); });
+  })();
+  </script>
 </body>
 </html>
