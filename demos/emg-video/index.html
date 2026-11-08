@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="author" content="Naeem Nairo">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<style>html,body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>NeuroGrip Video Match</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: recorded video (left) + network (middle) + robotic hand (right), gesture timeline, signal chain, explanation + 11-output table. Same "lab scope" look as the EMG network demo. */
+:root {
+  --bg: #0a0c11;
+  --panel: #10131a;
+  --line: #1f2430;
+  --ink: #e4e8f0;
+  --muted: #7c8496;
+  --trace: #7fd0d6;
+  --neuron: #6d4fd8;
+  --pulley: #3b78e7;
+  --servo: #d98a2b;
+  --f0: #ff8a5b; --f1: #ffd166; --f2: #5ee6a8; --f3: #59b8ff; --f4: #c58bff; --wr: #ff5d8f;
+  --font-display: "Chakra Petch", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); color: var(--ink); }
+body { font-family: var(--font-body); font-size: 14px; }
+.wrap { max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px;
+  padding-block: 18px 22px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(22px, 3vw, 30px); letter-spacing: .02em; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 4px 0 0; max-width: 70ch; line-height: 1.5; }
+button { font: 600 12.5px var(--font-display); letter-spacing: .04em; color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+button:hover { border-color: var(--muted); }
+button:focus-visible { outline: 2px solid var(--trace); outline-offset: 2px; }
+button.on { border-color: var(--trace); background: color-mix(in srgb, var(--trace) 18%, var(--panel)); }
+.stage { display: grid; grid-template-columns: 300px minmax(0, 1fr) 330px; grid-template-areas: "vid net hand"; gap: 14px; }
+.box { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; position: relative; overflow: hidden; }
+.vbox { grid-area: vid; } .nbox { grid-area: net; } .hbox { grid-area: hand; }
+video { display: block; width: 100%; height: 560px; object-fit: cover; background: #000; }
+#net { display: block; width: 100%; height: 560px; }
+#hand { display: block; width: 100%; height: 560px; touch-action: none; cursor: grab; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font: 400 12px var(--font-mono); pointer-events: none; text-align: center; padding: 16px; }
+.legend { position: absolute; right: 12px; bottom: 10px; display: flex; flex-direction: column; gap: 3px; font: 400 10px var(--font-mono); color: var(--muted); pointer-events: none; }
+.legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 6px; vertical-align: -1px; background: var(--c); border-radius: 2px; }
+.cap { position: absolute; left: 12px; top: 10px; font: 400 11px var(--font-mono); color: var(--muted); pointer-events: none; }
+.vbox .cap { color: #cfd5df; text-shadow: 0 1px 3px #000; }
+.now { position: absolute; left: 10px; bottom: 10px; font: 600 13px var(--font-display); letter-spacing: .05em; text-transform: uppercase;
+  background: rgba(10,12,17,.82); border: 1px solid var(--line); border-left: 3px solid var(--gc, var(--trace)); border-radius: 4px; padding: 5px 9px; pointer-events: none; }
+.hbox .now { bottom: auto; top: 30px; }
+.bar-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.track { position: relative; flex: 1 1 320px; height: 30px; display: flex; border-radius: 4px; overflow: hidden; border: 1px solid var(--line); background: var(--panel); cursor: pointer; }
+.seg { height: 100%; background: color-mix(in srgb, var(--gc) 26%, var(--panel)); border-right: 1px solid var(--bg); font: 500 10px var(--font-mono); color: var(--ink);
+  display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; min-width: 0; }
+.seg.cur { background: color-mix(in srgb, var(--gc) 55%, var(--panel)); }
+.head { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 6px #fff; pointer-events: none; }
+.time { font: 400 12px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; min-width: 86px; }
+.chain { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.step { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; transition: border-color .2s, background .2s; min-width: 0; }
+.step b { font: 600 13px var(--font-display); letter-spacing: .04em; }
+.step span { font: 400 11px var(--font-mono); color: var(--muted); line-height: 1.45; }
+.step.hot { border-color: var(--hc); background: color-mix(in srgb, var(--hc) 12%, var(--panel)); }
+body.embed header, body.embed .explain, body.embed #backlink { display: none; }
+body.embed .wrap { padding-block: 4px 8px; }
+.explain { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 14px; }
+.explain .box { padding: 14px 16px; }
+.explain h2 { font: 600 13px var(--font-display); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 8px; color: var(--muted); }
+#story { margin: 0; line-height: 1.6; max-width: 70ch; }
+#story strong { color: var(--sc, var(--ink)); }
+table { width: 100%; border-collapse: collapse; font: 400 12px var(--font-mono); font-variant-numeric: tabular-nums; }
+td, th { padding: 4px 4px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+th { color: var(--muted); font-weight: 500; }
+td:first-child, th:first-child { text-align: left; }
+td.act { color: var(--muted); }
+.bar { height: 6px; border-radius: 3px; background: var(--line); position: relative; min-width: 40px; }
+.bar i { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: var(--c); }
+.bar.mid::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
+.tblwrap { overflow-x: auto; }
+.note { color: var(--muted); font-size: 12px; margin: 10px 0 0; line-height: 1.5; }
+@media (max-width: 1100px) {
+  .stage { grid-template-columns: 270px minmax(0, 1fr); grid-template-areas: "vid hand" "net net"; }
+  video, #hand { height: 480px; }
+  .chain { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .explain { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .stage { gap: 8px; grid-template-columns: 169px minmax(0, 1fr); }
+  video, #hand { height: 300px; }
+  #net { height: 420px; }
+  .chain { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .legend, .hbox .cap { display: none; }
+  .hbox .now { top: 10px; }
+  .now { font-size: 11px; padding: 4px 7px; }
+  .seg { font-size: 0; }
+}
+</style>
+</head>
+<body>
+<a id="backlink" href="../../projects/emg-robotic-hand.html" style="position:fixed;z-index:20;left:max(12px,env(safe-area-inset-left,0px));bottom:12px;font:500 12px 'IBM Plex Mono',ui-monospace,monospace;color:#9aa3b2;background:rgba(10,12,17,.85);border:1px solid #2a3140;border-radius:4px;padding:6px 10px;text-decoration:none">← Project page</a>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>NeuroGrip · Video Match</h1>
+      <p class="sub">My forearm with EMG electrodes on the left, the robotic hand's 3D model on the right. As the video plays, the hand performs the same finger movements at the same moment, and the network in the middle shows which of its 11 outputs drive them.</p>
+    </div>
+  </header>
+
+  <section class="stage">
+    <div class="box vbox">
+      <video id="vid" src="neurogrip-emg.mp4" poster="poster.jpg" muted loop playsinline autoplay preload="auto" aria-label="Video of Naeem's forearm with EMG electrodes performing a sequence of hand gestures"></video>
+      <div class="cap">recorded · forearm EMG</div>
+      <div class="now" id="nowV">Open hand</div>
+    </div>
+    <div class="box nbox"><canvas id="net" aria-label="EMG channels flowing through the neural network to 11 outputs, matched to the video"></canvas><div class="cap">filtered EMG, last 2 s</div></div>
+    <div class="box hbox"><canvas id="hand" aria-label="3D model of the robotic hand performing the same gestures as the video"></canvas><div class="cap">3D model · drag to orbit</div><div class="now" id="nowH">Open hand</div><div class="loading" id="loading">Loading 3D model…</div><div class="legend"><span style="--c:var(--pulley)">bend pulley</span><span style="--c:var(--servo)">side servo</span><span style="--c:#2e9b74">wrist servo</span></div></div>
+  </section>
+
+  <div class="bar-row">
+    <button id="play" aria-label="Pause video">Pause</button>
+    <button id="slow" aria-pressed="false">0.5× speed</button>
+    <div class="track" id="track" role="slider" tabindex="0" aria-label="Gesture timeline, click to jump" aria-valuemin="0" aria-valuemax="28" aria-valuenow="0"><div class="head" id="headbar"></div></div>
+    <span class="time" id="time">0.0 / 28.4 s</span>
+  </div>
+
+  <section class="chain" id="chain">
+    <div class="step" data-s="0"><b>EMG</b><span>8 forearm electrodes, 1 kHz</span></div>
+    <div class="step" data-s="1"><b>Filter + window</b><span>20–450 Hz band-pass, 200 ms RMS</span></div>
+    <div class="step" data-s="2"><b>Conv layers</b><span>32 → 64 → 128 filters</span></div>
+    <div class="step" data-s="3"><b>Dense layers</b><span>32 → 16 units</span></div>
+    <div class="step" data-s="4"><b>11 outputs</b><span>5 bend, 5 side, 1 wrist, smoothed</span></div>
+    <div class="step" data-s="5"><b>Actuators</b><span>pulleys M1–M5, servos M6–M10, wrist M11</span></div>
+  </section>
+
+  <section class="explain">
+    <div class="box">
+      <h2>What you're seeing</h2>
+      <p id="story"></p>
+      <p class="note">The 3D hand's poses are matched to the video frame by frame. The forearm turn in the pinch is shown on the hand's wrist servo, since the robotic hand has one wrist axis. Network activations are illustrative; layer sizes match the real architecture.</p>
+    </div>
+    <div class="box">
+      <h2>Network output → actuator</h2>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Movement</th><th>Output</th><th style="width:34%"></th><th>Actuator</th><th>Angle</th></tr></thead>
+        <tbody id="tbl"></tbody>
+      </table></div>
+    </div>
+  </section>
+</div>
+
+<script>if (location.hash === "#embed") document.body.classList.add("embed");</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ---------- movements (11 DOF), same as the EMG network demo ----------
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const FN = ["Thumb","Index","Middle","Ring","Pinky"], KEY = ["t","i","m","r","p"];
+const FCOL = [0,1,2,3,4].map(i => css(`--f${i}`)), WCOL = css("--wr");
+const TRACE = css("--trace"), NEURON = css("--neuron"), LINE = css("--line"), MUTED = css("--muted"), INK = css("--ink"), PULLEY = css("--pulley"), SERVO = css("--servo"), PANEL = css("--panel");
+const FLEX_PROFILE = [
+  [1.0,.75,.25,.08,.05,.06,.18,.55],
+  [.35,1.0,.85,.3,.1,.05,.08,.2],
+  [.12,.45,1.0,.9,.35,.1,.06,.1],
+  [.06,.12,.4,.9,1.0,.55,.15,.08],
+  [.08,.06,.12,.35,.75,1.0,.85,.25]];
+const SIDE_PROFILE = [
+  [.55,.15,.05,.05,.25,.6,1.0,.85],
+  [.2,.35,.1,.05,.2,.85,1.0,.45],
+  [.1,.15,.35,.15,.55,1.0,.55,.15],
+  [.05,.1,.2,.45,1.0,.75,.25,.08],
+  [.05,.05,.15,.8,1.0,.45,.12,.05]];
+const MOVES = [];
+FN.forEach((n,f) => MOVES.push({id:`${KEY[f]}-flex`, name:`${n} bend`, short:`${n.toLowerCase()} bend`, f, kind:"flex", col:FCOL[f], prof:FLEX_PROFILE[f], motor:`M${f+1}`, act:"pulley"}));
+FN.forEach((n,f) => MOVES.push({id:`${KEY[f]}-side`, name:`${n} side`, short:`${n.toLowerCase()} side`, f, kind:"side", col:FCOL[f], prof:SIDE_PROFILE[f], motor:`M${f+6}`, act:"servo"}));
+MOVES.push({id:"w-flex", name:"Wrist", short:"wrist", f:-1, kind:"wrist", col:WCOL, prof:[.75,.55,.5,.6,.65,.5,.55,.8], motor:"M11", act:"wrist"});
+const NM = MOVES.length; // 11
+const SIDE_DIR = [1, 1, .35, -1, -1], SIDE_MAX = 25, WRIST_MAX = 50;
+
+// ---------- the video, keyframed ----------
+// Pose = 11 outputs: [thumb, index, middle, ring, pinky bend (0 open → 1 closed),
+//                     thumb, index, middle, ring, pinky side (+ spread / across palm, − toward the pinky), wrist]
+const P = (tF,iF,mF,rF,pF, tS=0,iS=0,mS=0,rS=0,pS=0, w=0) => [tF,iF,mF,rF,pF,tS,iS,mS,rS,pS,w];
+const REL = P(0,0,0,0,0, 0,.3,.3,.3,.3), SPREAD = P(0,0,0,0,0, 0,1,1,1,1), TOG = P(0,0,0,0,0),
+      FIST = P(.85,1,1,1,1), POINT = P(.85,0,1,1,1), POINT_L = P(0,0,1,1,1),
+      PINCH = P(.55,.7,1,1,1, .8,0,0,0,0, .9);
+const KF = [
+  [0,"Open hand",REL],[2.55,"Open hand",REL],
+  [2.95,"Pinky bends",P(0,0,0,0,1, 0,.3,.3,.3,0)],
+  [3.3,"Ring bends",P(0,0,0,1,1, 0,.3,.3,0,0)],
+  [3.75,"Middle bends",P(0,0,.7,1,1)],
+  [4.05,"Point",POINT_L],[4.45,"Point",POINT_L],
+  [4.75,"Index bends",P(.2,.6,1,1,1)],
+  [5.15,"Point",P(.2,0,1,1,1)],
+  [5.5,"Fist",FIST],[6.3,"Fist",FIST],
+  [6.65,"Open hand",REL],[7.05,"Open hand",REL],
+  [7.4,"Fist",FIST],[8.1,"Fist",FIST],
+  [8.5,"Spread",SPREAD],[9.6,"Spread",SPREAD],
+  [10.5,"Point",POINT],[12.75,"Point",POINT],[13.0,"Point",P(.85,.4,1,1,1)],[13.4,"Point",POINT],
+  [14.0,"Fist",FIST],[14.6,"Fist",FIST],
+  [15.0,"Spread",SPREAD],[15.5,"Fingers together",TOG],[16.0,"Spread",SPREAD],
+  [16.5,"Fingers together",P(0,0,0,0,0, 0,.2,.2,.2,.2)],[17.0,"Fingers together",TOG],
+  [17.5,"Spread",SPREAD],[18.25,"Spread",SPREAD],
+  [18.5,"Fist",FIST],[19.0,"Fist",FIST],
+  [19.3,"Wrist turn",P(0,.1,.9,.9,.9, 0,0,0,0,0, .9)],
+  [19.75,"Pinch",PINCH],[20.75,"Pinch",PINCH],
+  [21.0,"Spread",SPREAD],[21.5,"Fingers together",TOG],[22.1,"Fingers together",TOG],
+  [22.5,"Fist",FIST],[22.8,"Fist",FIST],
+  [23.1,"Open hand",REL],[23.6,"Open hand",REL],
+  [24.0,"Point",POINT_L],[26.3,"Point",POINT_L],
+  [27.3,"Index sweep",P(0,0,1,1,1, 0,-.9)],[27.6,"Index sweep",P(0,0,1,1,1, 0,-.9)],
+  [28.0,"Point",POINT_L],
+  [28.25,"Fist",FIST],[28.5,"Fist",FIST]];
+const GCOL = {"Open hand":"#7fd0d6","Spread":"#5ee6a8","Fingers together":"#59b8ff","Fist":"#ff8a5b","Point":"#ffd166","Index bends":"#ffd166","Index sweep":"#ffd166",
+  "Pinky bends":"#c58bff","Ring bends":"#59b8ff","Middle bends":"#5ee6a8","Wrist turn":"#ff5d8f","Pinch":"#ff5d8f"};
+const ease = u => u*u*(3-2*u);
+function sample(t){ // interpolated pose + current gesture name at video time t
+  let k = 0; while (k < KF.length-2 && KF[k+1][0] <= t) k++;
+  const [t0,l0,a] = KF[k], [t1,l1,b] = KF[k+1], u = Math.max(0, Math.min(1, (t - t0) / (t1 - t0))), e = ease(u);
+  return {pose: a.map((v,i) => v + (b[i]-v)*e), label: u > .5 ? l1 : l0};
+}
+// timeline segments: a gesture starts halfway into the transition towards it
+const SEGS = []; { let cur = null;
+  for (let k=0; k<KF.length; k++) { const [t,l] = KF[k]; if (cur && cur.label === l) continue;
+    const start = k ? (KF[k-1][0] + t)/2 : 0; if (cur) cur.end = start; cur = {label:l, start}; SEGS.push(cur); }
+  cur.end = 1e9; }
+
+// ---------- network layout ----------
+const LAYERS = [
+  {name:"8 electrodes", n:8, x:.29},
+  {name:"conv 1", sub:"32", n:32, x:.39},
+  {name:"conv 2", sub:"64", n:64, x:.49},
+  {name:"conv 3", sub:"128", n:128, x:.59},
+  {name:"dense", sub:"32", n:32, x:.69},
+  {name:"dense", sub:"16", n:16, x:.785},
+  {name:"output", sub:"11", n:NM, x:.875}];
+const OUT = LAYERS.length - 1, STEP_OF_LAYER = [1,2,2,2,3,3,4], HOP = 0.30;
+function rng(seed){ let s = seed>>>0; return () => (s = (s*1664525 + 1013904223)>>>0) / 4294967296; }
+const PAT = MOVES.map((M, m) => {
+  const r = rng(1000 + m*7919);
+  const active = LAYERS.map((L, li) => {
+    if (li === 0) return [0,1,2,3,4,5,6,7].filter(c => M.prof[c] > .4);
+    if (li === OUT) return [m];
+    const k = Math.max(3, Math.round(L.n * (li <= 3 ? .13 : .19)));
+    const centre = (m + .5) / NM, set = new Set();
+    while (set.size < k) { const u = r() < .72 ? centre + (r() - .5) * .34 : r(); set.add(Math.min(L.n-1, Math.max(0, Math.floor(u * L.n)))); }
+    return [...set].sort((a,b)=>a-b);
+  });
+  const edges = [];
+  for (let li = 1; li < LAYERS.length; li++) for (const j of active[li]) {
+    const prev = active[li-1], k = li === OUT ? prev.length : Math.min(prev.length, 2 + Math.floor(r()*2));
+    const pick = new Set(); while (pick.size < k) pick.add(prev[Math.floor(r()*prev.length)]);
+    for (const i of pick) edges.push({li, i, j, w: .5 + r()*.5});
+  }
+  return {active, edges};
+});
+const BG = (() => { const r = rng(42), e = [];
+  for (let li = 1; li < LAYERS.length; li++) for (let k = 0; k < LAYERS[li].n * 2; k++) e.push({li, i: Math.floor(r()*LAYERS[li-1].n), j: Math.floor(r()*LAYERS[li].n)}); return e; })();
+
+// ---------- state ----------
+const tgt = new Float32Array(NM), out = new Float32Array(NM), pos = new Float32Array(NM), env = new Float32Array(NM), lastEmit = new Float32Array(NM).fill(-9);
+const act = LAYERS.map(L => new Float32Array(L.n)), actCol = LAYERS.map(L => new Int8Array(L.n).fill(-1));
+const waves = [];
+const SAMPLES = 360, buf = Array.from({length:8}, () => new Float32Array(SAMPLES)); let head = 0, clock = 0, label = "Open hand";
+
+// ---------- video + timeline controls ----------
+const vid = document.getElementById("vid"), track = document.getElementById("track"), headbar = document.getElementById("headbar");
+const playBtn = document.getElementById("play"), slowBtn = document.getElementById("slow");
+let DUR = 28.37;
+vid.addEventListener("loadedmetadata", () => { if (isFinite(vid.duration)) DUR = vid.duration; buildTrack(); });
+function buildTrack(){
+  track.querySelectorAll(".seg").forEach(s => s.remove());
+  SEGS.forEach(S => { const d = Math.min(S.end, DUR) - S.start; if (d <= 0) return;
+    const el = document.createElement("div"); el.className = "seg"; el.style.flex = `${d} 0 0`; el.style.setProperty("--gc", GCOL[S.label] || TRACE);
+    el.textContent = d > 1.2 ? S.label : ""; el.title = `${S.label} · ${S.start.toFixed(1)} s`; S.el = el; track.insertBefore(el, headbar); });
+  track.setAttribute("aria-valuemax", DUR.toFixed(1));
+}
+buildTrack();
+function seekTo(clientX){ const r = track.getBoundingClientRect(); vid.currentTime = Math.max(0, Math.min(.999, (clientX - r.left) / r.width)) * DUR; }
+let scrubbing = false;
+track.addEventListener("pointerdown", e => { scrubbing = true; track.setPointerCapture(e.pointerId); seekTo(e.clientX); });
+track.addEventListener("pointermove", e => { if (scrubbing) seekTo(e.clientX); });
+track.addEventListener("pointerup", () => scrubbing = false); track.addEventListener("pointercancel", () => scrubbing = false);
+track.addEventListener("keydown", e => { const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0; if (d) { e.preventDefault(); vid.currentTime = Math.max(0, Math.min(DUR - .05, vid.currentTime + d)); } });
+playBtn.addEventListener("click", () => { vid.paused ? vid.play() : vid.pause(); });
+const syncPlay = () => { playBtn.textContent = vid.paused ? "Play" : "Pause"; playBtn.setAttribute("aria-label", vid.paused ? "Play video" : "Pause video"); };
+vid.addEventListener("play", syncPlay); vid.addEventListener("pause", syncPlay);
+slowBtn.addEventListener("click", () => { const slow = vid.playbackRate === 1; vid.playbackRate = slow ? .5 : 1; slowBtn.classList.toggle("on", slow); slowBtn.setAttribute("aria-pressed", slow); });
+vid.play().catch(() => syncPlay());
+
+// ---------- canvases ----------
+const net = document.getElementById("net"), nctx = net.getContext("2d");
+const hand = document.getElementById("hand");
+let NW=0, NH=0;
+function fit(){ const dpr = Math.min(devicePixelRatio || 1, 2);
+  NW = net.clientWidth; NH = net.clientHeight; net.width = NW*dpr; net.height = NH*dpr; nctx.setTransform(dpr,0,0,dpr,0,0); }
+new ResizeObserver(fit).observe(net);
+const narrow = () => NW < 640;
+function nodePos(li, i){
+  const L = LAYERS[li], top = 40, bot = NH - 50;
+  const xs = narrow() ? [.06, .22, .37, .52, .66, .79, .91] : NW < 900 ? [.25, .35, .45, .55, .645, .735, .82] : null;
+  const x = (xs ? xs[li] : L.x) * NW;
+  const y = top + (bot - top) * (L.n <= 11 ? (i + .5) / L.n : i / (L.n - 1));
+  return [x, y];
+}
+
+// ---------- simulation: the video time sets all 11 outputs ----------
+function step(dt, now){
+  const S = sample(vid.currentTime || 0); label = S.label;
+  const playing = !vid.paused;
+  for (let m=0; m<NM; m++) {
+    tgt[m] = S.pose[m]; pos[m] = tgt[m];                       // the hand follows the video exactly
+    out[m] += (tgt[m] - out[m]) * Math.min(1, dt*14);
+    env[m] += (Math.abs(tgt[m]) - env[m]) * Math.min(1, dt*6);
+    if (playing && Math.abs(tgt[m]) > .3 && now - lastEmit[m] > .9) { waves.push({m, t0: now}); lastEmit[m] = now; }
+  }
+  const n = Math.max(1, Math.round(dt * 180));
+  for (let s=0; s<n; s++) { for (let c=0; c<8; c++) {
+    let d = 0; for (let m=0; m<NM; m++) d += env[m] * MOVES[m].prof[c] * (.75 + .25*Math.sin(now*9 + c + m));
+    const a = .06 + .95*(1 - Math.exp(-1.3*d));
+    buf[c][head] = (Math.random()*2-1) * a + (Math.random()<.004 ? (Math.random()*2-1)*.6 : 0); }
+    head = (head + 1) % SAMPLES; }
+  for (const L of act) for (let i=0;i<L.length;i++) L[i] *= Math.exp(-dt*2.4);
+  for (let w = waves.length-1; w >= 0; w--) {
+    const W = waves[w], age = now - W.t0;
+    if (age > HOP * LAYERS.length + .6) { waves.splice(w,1); continue; }
+    const li = Math.floor(age / HOP);
+    if (li >= 0 && li < LAYERS.length) for (const i of PAT[W.m].active[li]) { act[li][i] = Math.max(act[li][i], 1); actCol[li][i] = W.m; }
+  }
+  for (let m=0; m<NM; m++) act[OUT][m] = Math.max(act[OUT][m], Math.min(1, Math.abs(out[m])));
+  let hotStep = -1, hotM = -1;
+  for (const W of waves) { const age = now - W.t0, li = Math.min(OUT, Math.floor(age/HOP)); const s = age < .15 ? 0 : STEP_OF_LAYER[li]; if (s > hotStep) { hotStep = s; hotM = W.m; } }
+  let moving = -1, best = .3; for (let m=0; m<NM; m++) if (Math.abs(pos[m]) > best) { best = Math.abs(pos[m]); moving = m; }
+  document.querySelectorAll(".step").forEach(el => { const s = +el.dataset.s; const on = s === hotStep || (s === 5 && moving >= 0);
+    el.classList.toggle("hot", on); if (on) el.style.setProperty("--hc", MOVES[s === 5 && moving >= 0 ? moving : Math.max(0, hotM)].col); });
+}
+
+// ---------- drawing: network ----------
+function drawNet(now){
+  const c = nctx; c.clearRect(0,0,NW,NH);
+  const tx0 = narrow() ? 4 : 30, tx1 = nodePos(0,0)[0] - (narrow()? 12 : 24);
+  c.font = "11px " + css("--font-mono"); c.textBaseline = "middle";
+  for (let ch=0; ch<8; ch++) {
+    const y = nodePos(0,ch)[1], amp = (NH - 90) / 8 * .42;
+    if (!narrow()) { c.fillStyle = MUTED; c.fillText("ch"+ch, 6, y); }
+    c.beginPath(); c.strokeStyle = TRACE; c.lineWidth = 1;
+    const x0 = tx0 + (narrow()?0:24);
+    for (let s=0; s<SAMPLES; s++) { const v = buf[ch][(head + s) % SAMPLES], x = x0 + (tx1 - x0) * s / (SAMPLES-1);
+      const yy = y - Math.max(-1.4, Math.min(1.4, v)) * amp; s ? c.lineTo(x, yy) : c.moveTo(x, yy); }
+    c.stroke();
+    c.strokeStyle = LINE; c.beginPath(); c.moveTo(tx1 + 2, y); c.lineTo(nodePos(0,ch)[0] - 10, y); c.stroke();
+    let rms = 0; for (let s=SAMPLES-40; s<SAMPLES; s++) { const v = buf[ch][(head+s)%SAMPLES]; rms += v*v; } rms = Math.sqrt(rms/40);
+    act[0][ch] = Math.max(act[0][ch], Math.min(1, rms * 2.2 - .1));
+  }
+  c.lineWidth = .6; c.strokeStyle = LINE; c.beginPath();
+  for (const e of BG) { const [x1,y1] = nodePos(e.li-1,e.i), [x2,y2] = nodePos(e.li,e.j); c.moveTo(x1,y1); c.lineTo(x2,y2); }
+  c.stroke();
+  for (let m=0; m<NM; m++) { const st = env[m]; if (st < .02) continue;
+    c.strokeStyle = MOVES[m].col; c.lineWidth = 1; c.setLineDash(MOVES[m].kind === "side" ? [4,3] : []);
+    for (const e of PAT[m].edges) { const [x1,y1] = nodePos(e.li-1,e.i), [x2,y2] = nodePos(e.li,e.j);
+      c.globalAlpha = .12 + .45 * st * e.w * Math.max(act[e.li][e.j], .25); c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke(); } }
+  c.setLineDash([]);
+  for (const W of waves) { const age = now - W.t0, li = Math.floor(age / HOP) + 1, p = (age % HOP) / HOP;
+    if (li < 1 || li >= LAYERS.length) continue; c.fillStyle = MOVES[W.m].col;
+    for (const e of PAT[W.m].edges) { if (e.li !== li) continue;
+      const [x1,y1] = nodePos(e.li-1,e.i), [x2,y2] = nodePos(e.li,e.j), x = x1 + (x2-x1)*p, y = y1 + (y2-y1)*p;
+      c.globalAlpha = .95; c.beginPath(); c.arc(x, y, 2.2, 0, 7); c.fill(); c.globalAlpha = .25; c.beginPath(); c.arc(x, y, 5, 0, 7); c.fill(); } }
+  c.globalAlpha = 1;
+  for (let li=0; li<LAYERS.length; li++) {
+    const L = LAYERS[li], big = li === 0 || li === OUT, r = big ? (li === OUT ? 6 : 7) : L.n >= 128 ? 1.9 : L.n >= 64 ? 2.6 : 3.4;
+    for (let i=0; i<L.n; i++) {
+      const [x,y] = nodePos(li,i), a = act[li][i], col = li === OUT ? MOVES[i].col : actCol[li][i] >= 0 ? MOVES[actCol[li][i]].col : NEURON;
+      if (a > .05) { c.globalAlpha = .35*a; c.fillStyle = col; c.beginPath(); c.arc(x,y,r*3.2,0,7); c.fill(); }
+      c.globalAlpha = 1; c.fillStyle = a > .05 ? mix(NEURON, col, a) : (big ? PANEL : NEURON);
+      c.strokeStyle = li === OUT ? MOVES[i].col : NEURON; c.lineWidth = big ? 1.6 : 0;
+      c.setLineDash(li === OUT && MOVES[i].kind === "side" ? [2.5,2] : []);
+      c.beginPath(); c.arc(x,y,r,0,7); c.fill(); if (big) c.stroke(); c.setLineDash([]);
+      if (li === OUT && !narrow()) { const M = MOVES[i]; c.fillStyle = INK; c.fillText(M.short, x + 12, y - 5); c.fillStyle = MUTED; c.fillText(out[i].toFixed(2), x + 12, y + 8); }
+    }
+  }
+  c.textAlign = "center"; c.fillStyle = MUTED;
+  for (let li=0; li<LAYERS.length; li++) { const x = nodePos(li,0)[0]; c.fillText(LAYERS[li].name, x, NH - 30); if (LAYERS[li].sub) c.fillText(LAYERS[li].sub, x, NH - 16); }
+  c.textAlign = "left";
+}
+function mix(a, b, t){ const pa = hex(a), pb = hex(b); return `rgb(${pa.map((v,i)=>Math.round(v+(pb[i]-v)*t)).join(",")})`; }
+function hex(h){ h = h.replace("#",""); return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16)); }
+
+// ---------- 3D hand (same model and linkage solver as the EMG network demo) ----------
+const D2R = Math.PI/180, FINGERS = ["thumb","index","middle","ring","pinky"];
+let renderer = null, scene = null, camera = null, dl = null;
+const linkGroups = {}, motorMat = {}; let HM = null, ready3d = false;
+const target = { x: 0, y: -25, z: -15 };
+const cr = (u,v) => u[0]*v[1]-u[1]*v[0], sub = (a,b) => [a[0]-b[0],a[1]-b[1]], dot = (a,b) => a[0]*b[0]+a[1]*b[1];
+const R2 = (v,a) => [v[0]*Math.cos(a)-v[1]*Math.sin(a), v[0]*Math.sin(a)+v[1]*Math.cos(a)];
+const add = (a,b) => [a[0]+b[0],a[1]+b[1]], ang2 = (a,b) => Math.atan2(cr(a,b),dot(a,b)), len = v => Math.hypot(v[0],v[1]);
+function circ(c1,r1,c2,r2,pick){ const d = len(sub(c2,c1)), a = (r1*r1-r2*r2+d*d)/(2*d), h = Math.sqrt(Math.max(r1*r1-a*a,0));
+  const u = [(c2[0]-c1[0])/d,(c2[1]-c1[1])/d], n = [-u[1],u[0]], p1 = [c1[0]+u[0]*a+n[0]*h, c1[1]+u[1]*a+n[1]*h], p2 = [c1[0]+u[0]*a-n[0]*h, c1[1]+u[1]*a-n[1]*h];
+  return Math.sign(cr(sub(c2,c1),sub(p1,c1))) === pick ? p1 : p2; }
+function solveF(F,th){ const {H,M:MC,E,A,B,C,D} = F._2, K = F._K;
+  const Cq = add(H,R2(sub(C,H),th)), Aq = add(H,R2(sub(A,H),th)), Eq = circ(MC,len(sub(E,MC)),Cq,len(sub(E,C)),K.pE);
+  const m = ang2(sub(E,MC),sub(Eq,MC)), cpl = ang2(sub(E,C),sub(Eq,Cq)), Dq = add(Cq,R2(sub(D,C),cpl));
+  const Bq = circ(Dq,len(sub(B,D)),Aq,len(sub(B,A)),K.pB); return {m,cpl,dist:ang2(sub(B,D),sub(Bq,Dq)),Cq,Dq,Aq,Bq}; }
+function solveT(F,th){ const {H,M:MC,E,G} = F._2, K = F._K, Gq = add(H,R2(sub(G,H),th)), Eq = circ(MC,len(sub(E,MC)),Gq,len(sub(E,G)),K.pE);
+  return {m: ang2(sub(E,MC),sub(Eq,MC)), t: ang2(sub(G,E),sub(Gq,Eq)), Eq}; }
+const motorMove = id => { const n = +id.slice(1); return n <= 5 ? n-1 : n <= 10 ? n-1 : 10; };
+let V3, rotAbout, planar, std;
+function init3d(){
+  V3 = a => new THREE.Vector3(a[0], a[1], a[2]);
+  rotAbout = (p, d, ang) => { const m = new THREE.Matrix4().makeTranslation(p.x,p.y,p.z); m.multiply(new THREE.Matrix4().makeRotationAxis(d, ang)); m.multiply(new THREE.Matrix4().makeTranslation(-p.x,-p.y,-p.z)); return m; };
+  planar = (F,c3,c2,th) => { const [e1,e2] = F._e, c = F._to2(c3), d = sub(c2,c);
+    return new THREE.Matrix4().makeTranslation(e1.x*d[0]+e2.x*d[1], e1.y*d[0]+e2.y*d[1], e1.z*d[0]+e2.z*d[1]).multiply(rotAbout(c3,F._k,th)); };
+  std = c => new THREE.MeshStandardMaterial({color: c, roughness: .6, metalness: .05});
+  renderer = new THREE.WebGLRenderer({canvas: hand, antialias: true}); renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  scene = new THREE.Scene(); scene.background = new THREE.Color(PANEL);
+  camera = new THREE.PerspectiveCamera(32, 1, 1, 5000); camera.up.set(0,0,1);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x30343c, .85));
+  dl = new THREE.DirectionalLight(0xffffff, .75); scene.add(dl);
+  const dl2 = new THREE.DirectionalLight(0xffffff, .25); dl2.position.set(80,300,-200); scene.add(dl2);
+}
+async function load3d(){
+  if (typeof THREE === "undefined") throw new Error("3D library did not load");
+  init3d();
+  const MAT = {part: std("#c9cfd8"), hw: std("#2b3038"), pcb: std("#2c5ea8"), body: std("#3a4049")};
+  HM = await (await fetch("../hand-model/hand.json")).json();
+  const bin = await (await fetch("../hand-model/hand.bin")).arrayBuffer();
+  for (const mm of HM.meshes) {
+    const pa = new Int16Array(bin, mm.pos[0], mm.pos[1]), idx = new Uint16Array(bin, mm.idx[0], mm.idx[1]), f32 = new Float32Array(pa.length);
+    for (let i=0;i<pa.length;i++) f32[i] = pa[i]*HM.scale;
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(f32,3)); g.setIndex(new THREE.BufferAttribute(idx,1)); g.computeVertexNormals();
+    let mat = mm.role === "hw" ? MAT.hw : mm.role === "pcb" ? MAT.pcb : MAT.part;
+    if (mm.role === "motor") {
+      const mi = motorMove(mm.motor), fi = mi < 5 ? mi : -1, servoBody = fi >= 0 && mm.name === "FS5115M";
+      if (fi >= 0 && !servoBody) mm.link = "pulley." + FINGERS[fi];
+      if (servoBody) mat = MAT.body;
+      else { mat = std(mi < 5 ? PULLEY : mi < 10 ? SERVO : "#2e9b74"); (motorMat[mi] = motorMat[mi] || []).push(mat); }
+    }
+    const mesh = new THREE.Mesh(g, mat); mesh.matrixAutoUpdate = false; mesh.userData.link = mm.link;
+    (linkGroups[mm.link] = linkGroups[mm.link] || []).push(mesh); scene.add(mesh);
+  }
+  for (const f of FINGERS) {
+    const F = HM.fingers[f], K = HM.k2[f];
+    F._abd = [V3(F.abd[0]), V3(F.abd[1]).normalize()]; const k = V3(F.mcp[1]).normalize();
+    const e1 = new THREE.Vector3(0,1,0); e1.addScaledVector(k, -e1.dot(k)).normalize(); const e2 = new THREE.Vector3().crossVectors(k, e1);
+    F._k = k; F._e = [e1,e2]; F._K = K; F._to2 = p => [p.dot(e1), p.dot(e2)];
+    F._3 = {E:V3(K.E), H:V3(K.H), M:V3(F.mcp[0])};
+    if (f === "thumb") F._3.G = V3(K.G); else Object.assign(F._3, {A:V3(F.A), B:V3(F.B), C:V3(F.C), D:V3(F.D)});
+    F._2 = Object.fromEntries(Object.entries(F._3).map(([n,v]) => [n, F._to2(v)]));
+  }
+  HM.wrist._ = [V3(HM.wrist[0]), V3(HM.wrist[1]).normalize()];
+  const bb = new THREE.Box3(); scene.children.forEach(o => o.isMesh && bb.expandByObject(o));
+  const ctr = new THREE.Vector3(); bb.getCenter(ctr); target.x = ctr.x; target.y = ctr.y; target.z = ctr.z;
+  ready3d = true; document.getElementById("loading").hidden = true;
+}
+function set(link, T){ (linkGroups[link] || []).forEach(m => m.matrix.copy(T)); }
+function pose3d(){
+  if (!ready3d) return;
+  const W = rotAbout(...HM.wrist._, pos[10]*WRIST_MAX*D2R);
+  set("palm", W); set("base", new THREE.Matrix4());
+  FINGERS.forEach((f, i) => {
+    const F = HM.fingers[f], K = F._K, S = F._3, k = F._k, s = Math.max(0, Math.min(1, pos[i]));
+    const Pu = HM.pulleys[f]; set("pulley."+f, rotAbout(V3(Pu.pt), V3(Pu.dir).normalize(), -s*Math.PI));
+    const Tabd = W.clone().multiply(rotAbout(...F._abd, pos[5+i]*SIDE_MAX*SIDE_DIR[i]*D2R)), L = T => Tabd.clone().multiply(T);
+    const crank = (K.th_open + s*(K.th_close - K.th_open))*D2R;
+    set(f+".abd", Tabd);
+    if (f === "thumb") { const J = solveT(F, crank); set("thumb.prox", L(rotAbout(S.M,k,J.m))); set("thumb.rod", L(rotAbout(S.H,k,crank))); set("thumb.dist", L(planar(F,S.E,J.Eq,J.t))); return; }
+    const J = solveF(F, crank);
+    set(f+".prox", L(rotAbout(S.M,k,J.m))); set(f+".rod", L(rotAbout(S.H,k,crank)));
+    set(f+".coupler", L(planar(F,S.C,J.Cq,J.cpl))); set(f+".dist", L(planar(F,S.D,J.Dq,J.dist)));
+    set(f+".link5", L(planar(F,S.A,J.Aq,ang2(sub(F._2.B,F._2.A),sub(J.Bq,J.Aq)))));
+  });
+  for (let m=0; m<NM; m++) (motorMat[m] || []).forEach(mt => { mt.emissive.set(MOVES[m].col); mt.emissiveIntensity = .38*env[m]; });
+}
+// orbit camera (same default view as the EMG network demo)
+let yaw = -2.0, pitch = .22, dist = 800;
+function placeCam(){ camera.position.set(target.x+dist*Math.cos(pitch)*Math.cos(yaw), target.y+dist*Math.cos(pitch)*Math.sin(yaw), target.z+dist*Math.sin(pitch));
+  camera.lookAt(target.x, target.y, target.z); dl.position.copy(camera.position); dl.position.z += 200; }
+const ptrs = new Map(); let pinch0 = 0;
+hand.addEventListener("pointerdown", e => { hand.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); if (ptrs.size === 2) pinch0 = pd(); });
+hand.addEventListener("pointermove", e => { if (!ptrs.has(e.pointerId)) return; const p = ptrs.get(e.pointerId);
+  if (ptrs.size === 1) { yaw -= (e.clientX-p[0])*.008; pitch = Math.max(-1.4, Math.min(1.4, pitch + (e.clientY-p[1])*.008)); }
+  ptrs.set(e.pointerId, [e.clientX, e.clientY]); if (ptrs.size === 2) { const d = pd(); dist = Math.max(200, Math.min(1400, dist*pinch0/d)); pinch0 = d; } });
+const up = e => ptrs.delete(e.pointerId); hand.addEventListener("pointerup", up); hand.addEventListener("pointercancel", up);
+function pd(){ const [a,b] = [...ptrs.values()]; return Math.hypot(a[0]-b[0], a[1]-b[1]) || 1; }
+hand.addEventListener("wheel", e => { e.preventDefault(); dist = Math.max(200, Math.min(1400, dist*(1 + e.deltaY*.001))); }, {passive: false});
+function drawHand(){
+  if (!ready3d) return;
+  const w = hand.clientWidth, h = hand.clientHeight;
+  if (renderer.domElement.width !== Math.round(w*renderer.getPixelRatio())) { renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix(); }
+  pose3d(); placeCam(); renderer.render(scene, camera);
+}
+load3d().catch(err => { document.getElementById("loading").textContent = "Could not load the 3D model: " + err.message; });
+
+// ---------- text ----------
+const tbl = document.getElementById("tbl");
+tbl.innerHTML = MOVES.map((M,m) => `<tr><td><span style="color:${M.col}">${M.kind === "side" ? "◌" : "●"}</span> ${M.name}</td><td id="o${m}">0.00</td>
+  <td><div class="bar${M.kind!=="flex"?" mid":""}" style="--c:${M.col}"><i id="ob${m}"></i></div></td><td class="act">${M.motor} ${M.act}</td><td id="p${m}">0°</td></tr>`).join("");
+function angleOf(m){ const M = MOVES[m]; if (M.kind === "flex") return pos[m]*180; if (M.kind === "wrist") return pos[m]*WRIST_MAX; return pos[m]*SIDE_MAX*(M.f===0?1:SIDE_DIR[M.f]); }
+function updateTable(){ for (let m=0;m<NM;m++){ const M = MOVES[m], b = document.getElementById("ob"+m), a = angleOf(m);
+  document.getElementById("o"+m).textContent = out[m].toFixed(2);
+  if (M.kind === "flex") { b.style.left = "0"; b.style.width = (Math.max(0,out[m])*100).toFixed(0)+"%"; }
+  else { const v = M.kind === "wrist" ? out[m] : out[m]*(M.f===0?1:Math.sign(SIDE_DIR[M.f])); const w = Math.min(1,Math.abs(v))*50; b.style.left = (v >= 0 ? 50 : 50 - w)+"%"; b.style.width = w+"%"; }
+  document.getElementById("p"+m).textContent = (M.kind !== "flex" && a > .5 ? "+" : "") + Math.round(a) + "°"; } }
+const STORY = {
+  "Open hand": "All outputs sit near rest: the electrodes pick up only baseline activity, so the pulleys stay at 0° and the fingers stay open.",
+  "Pinky bends": "The flexor of the little finger fires first. Output 5 (pinky bend) rises alone and pulley M5 curls the pinky while the others stay open.",
+  "Ring bends": "The ring finger's flexor joins in. Outputs 4 and 5 are high, so pulleys M4 and M5 hold both fingers curled.",
+  "Middle bends": "The middle finger follows. Three bend outputs are now active, each through its own path in the network.",
+  "Point": "Middle, ring and pinky are curled while the index stays straight. The network keeps the index bend output near 0 even though its neighbours fire strongly, which is what makes a clean point.",
+  "Index bends": "The index starts to curl too: its bend output rises and pulley M2 pulls its tendon.",
+  "Fist": "Every bend output is high. All five pulleys turn and the tendons close the whole hand.",
+  "Spread": "The extensor side of the forearm lights up. The four side outputs go positive and the knuckle servos M7–M10 fan the fingers apart.",
+  "Fingers together": "The side outputs return to zero, so the knuckle servos bring the fingers back together.",
+  "Wrist turn": "The forearm rotates. Activity spreads across most electrodes and the wrist output rises, tilting the hand on servo M11.",
+  "Pinch": "Thumb bend, thumb swing and index bend combine, so the thumb and index fingertips meet while the other fingers stay closed.",
+  "Index sweep": "The index stays straight but swings sideways. Only its side output moves, negative this time, so servo M7 turns it toward the little finger." };
+let lastLabel = "";
+function updateText(){
+  if (label === lastLabel) return; lastLabel = label;
+  const col = GCOL[label] || TRACE;
+  ["nowV","nowH"].forEach(id => { const el = document.getElementById(id); el.textContent = label; el.style.setProperty("--gc", col); });
+  const el = document.getElementById("story"); el.style.setProperty("--sc", col);
+  el.innerHTML = `<strong>${label}</strong>: ${STORY[label] || ""}`;
+  SEGS.forEach(S => S.el && S.el.classList.toggle("cur", S.label === label && vid.currentTime >= S.start && vid.currentTime < S.end));
+}
+
+// ---------- loop ----------
+let last = performance.now();
+function frame(t){ const dt = Math.min(.05, Math.max(0, (t-last)/1000)); last = t; clock += dt;
+  step(dt, clock); drawNet(clock); drawHand(); updateTable(); updateText();
+  const ct = vid.currentTime || 0; headbar.style.left = `calc(${Math.min(100, ct/DUR*100)}% - 1px)`;
+  document.getElementById("time").textContent = `${ct.toFixed(1)} / ${DUR.toFixed(1)} s`; track.setAttribute("aria-valuenow", ct.toFixed(1));
+  SEGS.forEach(S => S.el && S.el.classList.toggle("cur", ct >= S.start && ct < S.end));
+  requestAnimationFrame(frame); }
+fit(); syncPlay();
+for (let i=0;i<60;i++) { clock += 1/30; step(1/30, clock); }
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

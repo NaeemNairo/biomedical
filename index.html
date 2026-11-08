@@ -76,10 +76,11 @@
       <div class="container">
         <div class="section-head"><div><p class="eyebrow">Featured project · live demo</p><h2 id="ng-title">NeuroGrip</h2><p class="ng-sub">Intelligent EMG-Based Robotic Hand Control</p></div>
           <a class="link-more" href="projects/emg-robotic-hand.html">Read the project <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
-        <p class="ng-lede">A 3D-printed, 11-degree-of-freedom robotic hand that I control in real time from 8 channels of forearm EMG, using a neural network trained in PyTorch. Try it below: pick a movement and follow the muscle signal through the network to the motor that moves the hand. Or open the joint simulator to see how each finger's linkage moves.</p>
+        <p class="ng-lede">A 3D-printed, 11-degree-of-freedom robotic hand that I control in real time from 8 channels of forearm EMG, using a neural network trained in PyTorch. Try it below: pick a movement and follow the muscle signal through the network to the motor that moves the hand. Open the joint simulator to see how each finger's linkage moves, or Video match to watch the hand copy a real recording of my forearm.</p>
         <div class="ng-tabs" role="tablist" aria-label="NeuroGrip demos">
           <button class="ng-tab" role="tab" id="ng-tab-net" aria-selected="true" aria-controls="ng-frame" data-src="demos/emg-network/index.html#embed" data-mode="auto">EMG network</button>
           <button class="ng-tab" role="tab" id="ng-tab-sim" aria-selected="false" aria-controls="ng-frame" data-src="demos/hand-simulator/index.html#embed" data-mode="fixed">Joint simulator</button>
+          <button class="ng-tab" role="tab" id="ng-tab-vid" aria-selected="false" aria-controls="ng-frame" data-src="demos/emg-video/index.html#embed" data-mode="auto">Video match</button>
           <a class="ng-open" id="ng-open" href="demos/emg-network/index.html">Open full screen ↗</a>
         </div>
         <div class="card ng-stage"><iframe id="ng-frame" title="NeuroGrip interactive demo" src="demos/emg-network/index.html#embed" loading="lazy"></iframe></div>
