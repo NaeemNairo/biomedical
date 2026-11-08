@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hands-Free Proportional Control Through Eye Gaze · Mohammed Naeem Nairokh</title>
+  <title>EyeMotion: Eye-Tracking-Based Motion Control · Mohammed Naeem Nairokh</title>
   <meta name="description" content="A low-cost webcam interface that turns where a person looks into a proportional control signal, evaluated on a ball-and-beam task.">
   <meta name="author" content="Mohammed Naeem Nairokh">
   <link rel="canonical" href="https://naeemnairo.github.io/biomedical/projects/eye-gaze.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Mohammed Naeem Nairokh">
-  <meta property="og:title" content="Hands-Free Proportional Control Through Eye Gaze · Mohammed Naeem Nairokh">
+  <meta property="og:title" content="EyeMotion: Eye-Tracking-Based Motion Control · Mohammed Naeem Nairokh">
   <meta property="og:description" content="A low-cost webcam interface that turns where a person looks into a proportional control signal, evaluated on a ball-and-beam task.">
   <meta property="og:url" content="https://naeemnairo.github.io/biomedical/projects/eye-gaze.html">
   <meta property="og:image" content="https://naeemnairo.github.io/biomedical/assets/img/og-image.png">
@@ -36,20 +36,27 @@
   <main id="main">
     <section class="page-head"><div class="container">
       <a class="back" href="../work.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg> All work</a>
-      <p class="eyebrow" style="margin-top:12px">Assistive and biomedical</p><h1>Hands-Free Proportional Control Through Eye Gaze</h1>
+      <p class="eyebrow" style="margin-top:12px">Assistive and biomedical</p><h1>EyeMotion: Eye-Tracking-Based Motion Control</h1>
       <p class="lede">A low-cost webcam interface that turns where a person looks into a proportional control signal, evaluated on a ball-and-beam task.</p>
     </div></section>
     <section class="section" style="padding-top:40px"><div class="container detail">
       <div class="detail-main">
-        <figure class="card figure"><img src="../assets/img/eye-gaze.svg" alt="Diagram: webcam, eye landmarks, gaze estimate and beam angle" width="800" height="450"><figcaption>How the interface works: a webcam image, facial and eye landmarks, a gaze estimate, then a proportional command to the beam. Illustration.</figcaption></figure>
+        <figure class="card figure"><img src="../assets/img/eyemotion-rig.jpg" alt="Ball-and-beam platform: a steel ball on a beam tilted by a Quanser SRV02 rotary servo" width="1600" height="900"><figcaption>The ball-and-beam platform: a rotary servo tilts the beam, and the task is to hold the steel ball in place. EyeMotion replaces the hand controller with the user's gaze.</figcaption></figure>
         <div><h2>The question</h2><p>People with limited hand function often need expensive, dedicated eye trackers to control a device. Can a standard webcam give smooth, proportional control instead of simple on/off commands?</p></div>
         <div><h2>What I built</h2><p>A Python interface that uses MediaPipe to find facial and eye landmarks in each webcam frame and OpenCV to process the image. The estimated gaze position is mapped to a proportional control signal that sets the angle of a beam in a ball-and-beam task, a classic control benchmark where the goal is to hold the ball steady.</p></div>
+        <div><h2>How the eyes are tracked</h2><p>In every frame, landmarks are placed on the eyelids, the iris and the eye corners. Where the iris sits between the two corners gives the gaze direction, left to right and up to down, independent of how far the user sits from the camera.</p></div>
+        <div class="figure-grid">
+          <figure class="card figure"><img src="../assets/img/eyemotion-eye-landmarks.png" alt="Close-up of an eye with landmarks on the eyelids, the iris outline and the pupil" width="418" height="338" loading="lazy"><figcaption>Eye-shape registration: eyelid landmarks (red), iris outline (blue) and pupil (green).</figcaption></figure>
+          <figure class="card figure"><img src="../assets/img/eyemotion-gaze-directions.jpg" alt="Nine views of one eye looking in different directions, with the iris and pupil outlined in each" width="1184" height="976" loading="lazy"><figcaption>The iris moves inside the eye as gaze changes: nine directions from 30° left to 30° right and 20° down to 20° up. Image: IntechOpen.</figcaption></figure>
+        </div>
+        <figure class="card figure"><img src="../assets/img/eye-gaze.svg" alt="Diagram: webcam, eye landmarks, gaze estimate and beam angle" width="800" height="450" loading="lazy"><figcaption>From camera to beam: a webcam image, eye landmarks, a gaze estimate, then a proportional command to the beam. Illustration.</figcaption></figure>
         <div><h2>Why ball-and-beam</h2><p>The task is unstable, so it shows clearly whether the control signal is smooth and fast enough. It also connects to my work adapting a ball-and-beam platform into a rehabilitation tool in the University of New Haven Instrumentation Laboratory.</p></div>
         <p class="note">Results are in the manuscript, which is currently under review. They will be added here once it is published.</p>
       </div>
       <aside class="card detail-aside">
         <dl>
           <div><dt>Status</dt><dd>Manuscript under review</dd></div>
+          <div><dt>Paper</dt><dd>Hands-Free Proportional Control Through Eye Gaze: A Low-Cost Webcam Interface Evaluated on a Ball-and-Beam Task</dd></div>
           <div><dt>Main fact</dt><dd>1 webcam: no dedicated eye-tracking hardware needed</dd></div>
           <div><dt>Tools</dt><dd>Python, MediaPipe, OpenCV, Control systems</dd></div>
           <div><dt>Area</dt><dd>Assistive and biomedical</dd></div>
