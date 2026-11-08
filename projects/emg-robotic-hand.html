@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>EMG-Controlled 11-DOF Robotic Hand · Mohammed Naeem Nairokh</title>
+  <title>NeuroGrip: Intelligent EMG-Based Robotic Hand Control · Mohammed Naeem Nairokh</title>
   <meta name="description" content="A 3D-printed robotic hand I control in real time from 8 channels of forearm EMG, using a neural network trained in PyTorch and servos driven through an Arduino.">
   <meta name="author" content="Mohammed Naeem Nairokh">
   <link rel="canonical" href="https://naeemnairo.github.io/biomedical/projects/emg-robotic-hand.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Mohammed Naeem Nairokh">
-  <meta property="og:title" content="EMG-Controlled 11-DOF Robotic Hand · Mohammed Naeem Nairokh">
+  <meta property="og:title" content="NeuroGrip: Intelligent EMG-Based Robotic Hand Control · Mohammed Naeem Nairokh">
   <meta property="og:description" content="A 3D-printed robotic hand I control in real time from 8 channels of forearm EMG, using a neural network trained in PyTorch and servos driven through an Arduino.">
   <meta property="og:url" content="https://naeemnairo.github.io/biomedical/projects/emg-robotic-hand.html">
   <meta property="og:image" content="https://naeemnairo.github.io/biomedical/assets/img/og-image.png">
@@ -36,7 +36,7 @@
   <main id="main">
     <section class="page-head"><div class="container">
       <a class="back" href="../work.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg> All work</a>
-      <p class="eyebrow" style="margin-top:12px">Neural interfaces and robotics</p><h1>EMG-Controlled 11-DOF Robotic Hand</h1>
+      <p class="eyebrow" style="margin-top:12px">Neural interfaces and robotics</p><h1>NeuroGrip</h1><p class="lede" style="margin-top:6px;color:var(--ink)">Intelligent EMG-Based Robotic Hand Control</p>
       <p class="lede">A robotic hand I control in real time using neuromuscular signals recorded from my forearm.</p>
     </div></section>
     <section class="section" style="padding-top:40px"><div class="container detail">
@@ -49,7 +49,7 @@
         <div><h2>The hardest problem</h2><p>The hardest problem was turning accurate predictions into stable movement. The model's output could flicker even while I held the same pose. I fixed this by adding a temporal-consistency term to the training loss, which penalizes disagreement between nearby EMG windows from the same held pose. I then tuned the inference filtering to balance stability against response time.</p></div>
         <div><h2>Hardware</h2><p>On the hardware side, I balanced tendon tension against spring forces, reduced friction between moving parts, and worked out the servo power distribution. To check joint ranges before testing on hardware, I built a kinematic simulator from the hand's CAD assembly. It solves each finger's linkage from the real pin positions and flagged where the fingers would hit the palm.</p></div>
         <div><h2>Interactive demos</h2><p>Both run in the browser and use the hand's real 3D model.</p>
-          <p style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px"><a class="btn btn-primary btn-sm" href="../demos/emg-network/index.html">EMG network demo</a><a class="btn btn-sm" href="../demos/hand-simulator/index.html">Joint simulator</a></p></div>
+          <p style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px"><a class="btn btn-primary btn-sm" href="../demos/emg-network/index.html">EMG network demo</a><a class="btn btn-sm" href="../index.html#neurogrip">Try it on the home page</a><a class="btn btn-sm" href="../demos/hand-simulator/index.html">Joint simulator</a></p></div>
         <p class="note">Bringing signal processing, machine learning, electronics and mechanics together into one working system was the most rewarding part of this project.</p>
       </div>
       <aside class="card detail-aside">
