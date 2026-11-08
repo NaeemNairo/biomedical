@@ -152,6 +152,10 @@ ul { margin: 0; }
 .big-fact strong { font: 600 clamp(1.9rem, 3.2vw, 2.4rem)/1 var(--serif); color: var(--accent); }
 .big-fact span { font-size: .88rem; color: var(--muted); }
 .project .tags { margin-top: 4px !important; }
+/* Featured project: spans the full grid row, image beside the text on wide screens */
+.project.featured { grid-column: 1 / -1; display: grid; grid-template-columns: 1.25fr 1fr; }
+.project.featured .project-media { border-bottom: 0; border-right: 1px solid var(--border); aspect-ratio: auto; min-height: 100%; }
+@media (max-width: 860px) { .project.featured { display: flex; } .project.featured .project-media { aspect-ratio: 16 / 9; border-right: 0; border-bottom: 1px solid var(--border); } }
 
 /* Publications */
 .pub { padding: 24px; display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; }
