@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="author" content="Mohammed Naeem Nairokh">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<style>html,body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Robotic Hand Joint Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: viewport on the left, motor variable table on the right; stacks on phones */
+:root {
+  --bg: #eef1f4;
+  --panel: #ffffff;
+  --ink: #17202a;
+  --muted: #5d6b78;
+  --line: #d6dce2;
+  --viewport: #dde3e9;
+  --flex: #2f6fd6;      /* tendon flexion motors */
+  --abd: #d8892b;       /* abduction motors */
+  --wrist: #2e9b74;     /* wrist motor */
+  --part: #d4d9df;      /* printed parts */
+  --part2: #3a424b;
+  --pcb: #2c5ea8;
+  --tube: #f2f0f6;
+  --cord: #d23a3a;
+  --hi: #e0427a;        /* highlight */
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161b; --panel: #1a2027; --ink: #e6ebf0; --muted: #93a0ad; --line: #2c343d;
+  --viewport: #0d1115; --flex: #5b93f0; --abd: #f0a64a; --wrist: #4cc597;
+  --part: #aab3bd; --part2: #2a3038; --pcb: #3f72c0; --tube: #e9e6ef; --cord: #ef5a5a; --hi: #ff6a9c; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12161b; --panel: #1a2027; --ink: #e6ebf0; --muted: #93a0ad; --line: #2c343d;
+  --viewport: #0d1115; --flex: #5b93f0; --abd: #f0a64a; --wrist: #4cc597;
+  --part: #aab3bd; --part2: #2a3038; --pcb: #3f72c0; --tube: #e9e6ef; --cord: #ef5a5a; --hi: #ff6a9c; color-scheme: dark }
+
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; }
+.wrap { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 16px; height: 100%;
+  padding-block: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); box-sizing: border-box; }
+.view { position: relative; background: var(--viewport); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; min-height: 360px; }
+#cv { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+#cv:active { cursor: grabbing; }
+.view-head { position: absolute; top: 12px; left: 14px; right: 14px; display: flex; justify-content: space-between; gap: 12px; pointer-events: none; }
+.view-head h1 { font-family: var(--font-display); font-size: 22px; font-weight: 700; margin: 0; letter-spacing: .01em; text-wrap: balance; }
+.view-head p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+.legend { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); text-align: right; }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+.loading[hidden] { display:none; }
+.loading { position:absolute; inset:0; display:grid; place-items:center; color:var(--muted); font-family:var(--font-mono); font-size:12px; pointer-events:none; }
+.joints { grid-column: 2 / 4; font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hint { position: absolute; bottom: 10px; left: 14px; font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; display: flex; flex-direction: column; min-height: 0; }
+.panel header { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+.panel h2 { font-family: var(--font-display); font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin: 0; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+button { font: 500 12px var(--font-body); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 4px; padding: 5px 10px; cursor: pointer; }
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--hi); outline-offset: 2px; }
+.list { overflow-y: auto; padding: 6px 0; flex: 1; min-height: 0; }
+.group { padding: 8px 16px 2px; font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--c); }
+.row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 70px; align-items: center; gap: 4px 10px; padding: 6px 16px; border-left: 3px solid transparent; }
+.row.on { border-left-color: var(--hi); background: color-mix(in srgb, var(--hi) 7%, transparent); }
+.id { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--c); }
+.name { font-size: 13px; }
+.var { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.val { font-family: var(--font-mono); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+.row input[type=range] { grid-column: 2 / 4; width: 100%; accent-color: var(--c); margin: 0; }
+.panel footer { border-top: 1px solid var(--line); padding: 10px 16px 14px; display: flex; flex-direction: column; gap: 8px; }
+pre { margin: 0; font: 11px/1.5 var(--font-mono); color: var(--muted); background: var(--bg); border-radius: 4px; padding: 8px 10px; overflow-x: auto; max-height: 120px; }
+.foot-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.foot-row span { font-size: 12px; color: var(--muted); }
+
+@media (max-width: 860px) {
+  html, body { height: auto; }
+  .wrap { grid-template-columns: 1fr; height: auto; }
+  .view { height: 58vh; }
+  .legend { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+</head>
+<body>
+<a href="../../projects/emg-robotic-hand.html" style="position:fixed;z-index:20;left:max(12px,env(safe-area-inset-left,0px));bottom:12px;font:500 12px 'IBM Plex Mono',ui-monospace,monospace;color:#9aa3b2;background:rgba(10,12,17,.85);border:1px solid #2a3140;border-radius:4px;padding:6px 10px;text-decoration:none">← Project page</a>
+<div class="wrap">
+  <section class="view">
+    <canvas id="cv" aria-label="3D block model of the robotic hand"></canvas>
+    <div class="view-head">
+      <div>
+        <h1>Robotic Hand Joint Simulator</h1>
+        <p>Your STEP assembly, driven by 11 motor variables.</p>
+      </div>
+      <div class="legend">
+        <span style="--c:var(--flex)">Pulley actuator ×5</span>
+        <span style="--c:var(--abd)">Abduction (finger rotate) ×5</span>
+        <span style="--c:var(--wrist)">Wrist ×1</span>
+        <span style="--c:var(--hi)">Hover a row to find its motor</span>
+      </div>
+    </div>
+    <div class="loading" id="loading">Loading model…</div>
+    <div class="hint">drag to orbit · scroll / pinch to zoom</div>
+  </section>
+
+  <aside class="panel">
+    <header>
+      <h2>Motor variables</h2>
+      <div class="presets">
+        <button data-p="open">Open</button>
+        <button data-p="fist">Fist</button>
+        <button data-p="pinch">Pinch</button>
+        <button data-p="point">Point</button>
+        <button data-p="spread">Spread</button>
+        <button id="anim">Animate</button>
+      </div>
+    </header>
+    <div class="list" id="list"></div>
+    <footer>
+      <div class="foot-row"><span>State vector q (11×1) + joint angles</span><button id="copy">Copy JSON</button></div>
+      <pre id="state"></pre>
+    </footer>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ---------- Motor variables ----------
+const FINGERS=["thumb","index","middle","ring","pinky"];
+const MOTORS=[];
+// M1–M5: one pulley per finger. Each pulley carries two cables: the flexor (front) winds on as the pulley turns, the extensor (back) pays out by the same length.
+const PULLEY_MAX=180; // pulley travel (deg) that takes the finger from open to its full flexion limit
+FINGERS.forEach((f,i)=>MOTORS.push({id:`M${i+1}`,type:"flex",finger:f,name:`${cap(f)} pulley`,v:`q_pulley_${f}`,min:0,max:PULLEY_MAX,unit:"°",val:0}));
+FINGERS.forEach((f,i)=>MOTORS.push({id:`M${i+6}`,type:"abd",finger:f,name:`${cap(f)} abduction`,v:`q_abd_${f}`,min:-25,max:25,unit:"°",val:0}));
+MOTORS.push({id:"M11",type:"wrist",name:"Wrist flexion",v:"q_wrist",min:-60,max:60,unit:"°",val:0});
+function cap(s){return s[0].toUpperCase()+s.slice(1)}
+const byV=Object.fromEntries(MOTORS.map(m=>[m.v,m])), byId=Object.fromEntries(MOTORS.map(m=>[m.id,m]));
+
+// Joint limits mapped from each variable (degrees). Edit these to match your hardware.
+// Fingers: 100% flexion = 70° at MCP and 70° at PIP (DIP follows the linkage). Thumb flexes toward the fingers (thumbDir).
+// Full flexion stops when the first joint reaches fingerMax (deg); thumb stops at MCP 50° or IP 60°. Crank ranges are precomputed in hand.json (k2.th_open/th_close).
+const LIMITS={ fingerMax:{index:70, middle:70, ring:85, pinky:60}, thumbMcpMax:50, thumbIpOpen:-9, thumbIpMax:60, thumbDir:-1 };
+
+// ---------- Panel ----------
+const list=document.getElementById("list");
+const groups={flex:["Pulley actuators · M1–M5 (forearm, 2 cables each)","--flex"],abd:["Finger abduction · M6–M10 (palm)","--abd"],wrist:["Wrist · M11","--wrist"]};
+let lastType=null;
+MOTORS.forEach(m=>{
+  if(m.type!==lastType){const g=document.createElement("div");g.className="group";g.style.setProperty("--c",`var(${groups[m.type][1]})`);g.textContent=groups[m.type][0];list.appendChild(g);lastType=m.type;}
+  const r=document.createElement("div");r.className="row";r.style.setProperty("--c",`var(${groups[m.type][1]})`);
+  r.innerHTML=`<span class="id">${m.id}</span><span><span class="name">${m.name}</span><br><span class="var">${m.v}</span></span><span class="val" id="val_${m.v}"></span>
+  <input type="range" id="in_${m.v}" min="${m.min}" max="${m.max}" step="1" value="${m.val}" aria-label="${m.name}">${m.type==="flex"?`<span class="joints" id="j_${m.finger}"></span>`:""}`;
+  const inp=r.querySelector("input");
+  inp.addEventListener("input",()=>{stopAnim();m.val=+inp.value;refresh();});
+  const on=()=>{setHi(m,true);r.classList.add("on");},off=()=>{setHi(m,false);r.classList.remove("on");};
+  r.addEventListener("mouseenter",on);r.addEventListener("mouseleave",off);inp.addEventListener("focus",on);inp.addEventListener("blur",off);
+  list.appendChild(r);
+});
+const PRESETS={
+  open:{flex:[0,0,0,0,0],abd:[0,0,0,0,0],wrist:0},
+  fist:{flex:[80,100,100,100,100],abd:[10,0,0,0,0],wrist:0},
+  pinch:{flex:[55,55,0,0,0],abd:[20,5,0,0,0],wrist:-10},
+  point:{flex:[80,0,100,100,100],abd:[10,0,0,0,0],wrist:0},
+  spread:{flex:[0,0,0,0,0],abd:[-20,15,0,-12,-22],wrist:20},
+};
+function applyPreset(p){const s=PRESETS[p];FINGERS.forEach((f,i)=>{byV[`q_pulley_${f}`].val=s.flex[i]/100*PULLEY_MAX;byV[`q_abd_${f}`].val=s.abd[i];});byV.q_wrist.val=s.wrist;refresh();}
+document.querySelectorAll("[data-p]").forEach(b=>b.addEventListener("click",()=>{stopAnim();applyPreset(b.dataset.p);}));
+const stateObj=()=>Object.fromEntries(MOTORS.map(m=>[m.v,m.val]));
+document.getElementById("copy").addEventListener("click",async e=>{
+  const txt=JSON.stringify({motors:stateObj(),joints_deg:jointLog},null,2);
+  try{await navigator.clipboard.writeText(txt);e.target.textContent="Copied";}
+  catch{const sel=getSelection(),rg=document.createRange();rg.selectNodeContents(document.getElementById("state"));sel.removeAllRanges();sel.addRange(rg);e.target.textContent="Selected";}
+  setTimeout(()=>e.target.textContent="Copy JSON",1400);
+});
+
+// ---------- Scene ----------
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const cv=document.getElementById("cv");
+const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(32,1,1,5000);camera.up.set(0,0,1);
+scene.add(new THREE.HemisphereLight(0xffffff,0x40464f,0.85));
+const dl=new THREE.DirectionalLight(0xffffff,0.75);scene.add(dl);
+const dl2=new THREE.DirectionalLight(0xffffff,0.25);dl2.position.set(80,300,-200);scene.add(dl2);
+const MAT={};["part","part2","pcb","flex","abd","wrist"].forEach(k=>MAT[k]=new THREE.MeshStandardMaterial({roughness:.6,metalness:.05}));
+const motorMeshes={};const linkGroups={};let M=null, ready=false;
+function paint(){
+  MAT.part.color.set(css("--part"));MAT.part2.color.set(css("--part2"));MAT.pcb.color.set(css("--pcb"));if(MAT.tube){MAT.tube.color.set(css("--tube"));MAT.cord.color.set(css("--cord"));}
+  ["flex","abd","wrist"].forEach(t=>MAT[t].color.set(css("--"+t)));
+  scene.background=new THREE.Color(css("--viewport"));
+  Object.entries(motorMeshes).forEach(([id,ms])=>ms.forEach(x=>x.material.emissive.set(byId[id].hi?css("--hi"):"#000")));
+}
+const V3=(a)=>new THREE.Vector3(a[0],a[1],a[2]);
+function rotAbout(p,d,ang){ // rotation about line through p with direction d
+  const m=new THREE.Matrix4().makeTranslation(p.x,p.y,p.z);
+  m.multiply(new THREE.Matrix4().makeRotationAxis(d,ang));
+  m.multiply(new THREE.Matrix4().makeTranslation(-p.x,-p.y,-p.z));return m;
+}
+const D2R=Math.PI/180;
+
+async function load(){
+  M=await (await fetch("../hand-model/hand.json")).json();
+  const buf=await (await fetch("../hand-model/hand.bin")).arrayBuffer();
+  for(const mm of M.meshes){
+    const pos=new Int16Array(buf,mm.pos[0],mm.pos[1]), idx=new Uint16Array(buf,mm.idx[0],mm.idx[1]);
+    const f=new Float32Array(pos.length);for(let i=0;i<pos.length;i++)f[i]=pos[i]*M.scale;
+    const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.BufferAttribute(f,3));g.setIndex(new THREE.BufferAttribute(idx,1));g.computeVertexNormals();
+    let mat;
+    const fi=mm.role==="motor"?+mm.motor.slice(1)-1:-1, isServoBody=fi>=0&&fi<5&&mm.name==="FS5115M";
+    if(fi>=0&&fi<5&&!isServoBody) mm.link="pulley."+FINGERS[fi];
+    if(mm.role==="motor"){const t=byId[mm.motor].type;mat=(isServoBody?MAT.part2:MAT[t]).clone();(motorMeshes[mm.motor]=motorMeshes[mm.motor]||[]);}
+    else mat=mm.role==="hw"?MAT.part2:mm.role==="pcb"?MAT.pcb:MAT.part;
+    const mesh=new THREE.Mesh(g,mat);mesh.matrixAutoUpdate=false;
+    if(mm.role==="motor")motorMeshes[mm.motor].push(mesh);
+    (linkGroups[mm.link]=linkGroups[mm.link]||[]).push(mesh);scene.add(mesh);
+  }
+  // per-finger kinematic constants
+  for(const f of FINGERS){
+    const F=M.fingers[f];
+    F._abd=[V3(F.abd[0]),V3(F.abd[1]).normalize()];F._mcp=[V3(F.mcp[0]),V3(F.mcp[1]).normalize()];
+    const k=F._mcp[1];let e1=new THREE.Vector3(0,1,0);e1.addScaledVector(k,-e1.dot(k)).normalize();const e2=new THREE.Vector3().crossVectors(k,e1);
+    const K=M.k2[f];F._k=k;F._e=[e1,e2];F._K=K;
+    const to2=p=>[p.dot(e1),p.dot(e2)];F._to2=to2;
+    F._3={E:V3(K.E),H:V3(K.H),M:V3(F.mcp[0])};
+    if(f==="thumb"){F._3.G=V3(K.G);}
+    else{F._3.A=V3(F.A);F._3.B=V3(F.B);F._3.C=V3(F.C);F._3.D=V3(F.D);}
+    F._2=Object.fromEntries(Object.entries(F._3).map(([n,v])=>[n,to2(v)]));
+    F._J0=f==="thumb"?solveT(F,K.th_open*D2R):solveF(F,K.th_open*D2R);
+  }
+  M.wrist._=[V3(M.wrist[0]),V3(M.wrist[1]).normalize()];
+  // camera target = model centre
+  const bb=new THREE.Box3();scene.children.forEach(o=>o.isMesh&&bb.expandByObject(o));bb.getCenter(target);
+  ready=true;document.getElementById("loading").hidden=true;paint();refresh();
+}
+const cr=(u,v)=>u[0]*v[1]-u[1]*v[0], sub=(a,b)=>[a[0]-b[0],a[1]-b[1]], dot=(a,b)=>a[0]*b[0]+a[1]*b[1];
+const rot2=(p,c,a)=>{const d=sub(p,c);return [c[0]+d[0]*Math.cos(a)-d[1]*Math.sin(a),c[1]+d[0]*Math.sin(a)+d[1]*Math.cos(a)];};
+// Finger linkage (from the STEP pins): Part 3 = proximal (MCP). Side plates 4/7 = middle phalanx, pivoting in Part 3's socket (PIP).
+// Part 6 = distal, pinned to the side plates (DIP). Part 2 = tendon rod, pinned to the side plates; Part 5 links the rod to the distal.
+const R2=(v,a)=>[v[0]*Math.cos(a)-v[1]*Math.sin(a),v[0]*Math.sin(a)+v[1]*Math.cos(a)];
+const add=(a,b)=>[a[0]+b[0],a[1]+b[1]], ang2=(a,b)=>Math.atan2(cr(a,b),dot(a,b)), len=v=>Math.hypot(v[0],v[1]);
+// planar rigid motion (point c goes to c2, rotation th about the pin axis) as a 3D matrix
+function planar(F,c3,c2,th){const [e1,e2]=F._e;const c=F._to2(c3);const d=sub(c2,c);
+  return new THREE.Matrix4().makeTranslation(e1.x*d[0]+e2.x*d[1],e1.y*d[0]+e2.y*d[1],e1.z*d[0]+e2.z*d[1]).multiply(rotAbout(c3,F._k,th));}
+function circ(c1,r1,c2,r2,pick){const d=len(sub(c2,c1));const a=(r1*r1-r2*r2+d*d)/(2*d),h=Math.sqrt(Math.max(r1*r1-a*a,0));
+  const u=[(c2[0]-c1[0])/d,(c2[1]-c1[1])/d],n=[-u[1],u[0]];const p1=[c1[0]+u[0]*a+n[0]*h,c1[1]+u[1]*a+n[1]*h],p2=[c1[0]+u[0]*a-n[0]*h,c1[1]+u[1]*a-n[1]*h];
+  return Math.sign(cr(sub(c2,c1),sub(p1,c1)))===pick?p1:p2;}
+// One input per finger: the Part 2 crank turns about its hub H (the cords wrap the hub, front and back).
+// Crank pin C drives the side plates, whose boss E turns Part 3 about the MCP; Part 5 (A–B) carries the distal about D.
+function solveF(F,th){
+  const {H,M:MC,E,A,B,C,D}=F._2,K=F._K;
+  const Cq=add(H,R2(sub(C,H),th)),Aq=add(H,R2(sub(A,H),th));
+  const Eq=circ(MC,len(sub(E,MC)),Cq,len(sub(E,C)),K.pE);
+  const m=ang2(sub(E,MC),sub(Eq,MC)),cpl=ang2(sub(E,C),sub(Eq,Cq));const Dq=add(Cq,R2(sub(D,C),cpl));
+  const Bq=circ(Dq,len(sub(B,D)),Aq,len(sub(B,A)),K.pB);const dist=ang2(sub(B,D),sub(Bq,Dq));
+  return {th,m,cpl,dist,Cq,Dq,Aq,Bq,mcp:m,pip:cpl-m,dip:dist-cpl};
+}
+function solveT(F,th){ // thumb: crank G drives the tip (Part 4) pinned to Part 3 at E
+  const {H,M:MC,E,G}=F._2,K=F._K;const Gq=add(H,R2(sub(G,H),th));
+  const Eq=circ(MC,len(sub(E,MC)),Gq,len(sub(E,G)),K.pE);
+  const m=ang2(sub(E,MC),sub(Eq,MC)),t=ang2(sub(G,E),sub(Gq,Eq));
+  return {th,m,t,Eq,mcp:m,ip:t-m};
+}
+let jointLog={};
+function pose(){
+  if(!ready)return;
+  const W=rotAbout(...M.wrist._,byV.q_wrist.val*D2R);
+  (linkGroups.palm||[]).forEach(m=>m.matrix.copy(W));
+  (linkGroups.base||[]).forEach(m=>m.matrix.identity());
+  jointLog={wrist:+byV.q_wrist.val.toFixed(1)};
+  for(const f of FINGERS){
+    const th=byV[`q_pulley_${f}`].val,Pu=M.pulleys[f];set("pulley."+f,rotAbout(V3(Pu.pt),V3(Pu.dir).normalize(),-th*D2R));
+    const cable=Pu.r*th*D2R, cableTxt=`Flexor +${cable.toFixed(1)} mm · Extensor −${cable.toFixed(1)} mm`;
+    const F=M.fingers[f],s=th/PULLEY_MAX,a=byV[`q_abd_${f}`].val*D2R;
+    const Tabd=W.clone().multiply(rotAbout(...F._abd,a));
+    const K=F._K,S=F._3,k=F._k,crank=(K.th_open+s*(K.th_close-K.th_open))*D2R,J0=F._J0;
+    const L=T=>Tabd.clone().multiply(T);
+    set(f+".abd",Tabd);
+    if(f==="thumb"){
+      const J=solveT(F,crank);
+      set("thumb.prox",L(rotAbout(S.M,k,J.m)));set("thumb.rod",L(rotAbout(S.H,k,crank)));set("thumb.dist",L(planar(F,S.E,J.Eq,J.t)));
+      const mcp=-(J.mcp-J0.mcp)/D2R, ip=-(J.ip-J0.ip)/D2R;
+      jointLog.thumb={pulley:+th.toFixed(1),cable_mm:+cable.toFixed(2),abd:+byV.q_abd_thumb.val.toFixed(1),crank:+((crank/D2R)-K.th_open).toFixed(1),mcp:+mcp.toFixed(1),ip:+ip.toFixed(1)};
+      document.getElementById("j_thumb").textContent=`${cableTxt} · MCP ${mcp.toFixed(0)}° · IP ${ip.toFixed(0)}°`;
+      continue;
+    }
+    const J=solveF(F,crank);
+    set(f+".prox",L(rotAbout(S.M,k,J.m)));set(f+".rod",L(rotAbout(S.H,k,crank)));
+    set(f+".coupler",L(planar(F,S.C,J.Cq,J.cpl)));set(f+".dist",L(planar(F,S.D,J.Dq,J.dist)));
+    set(f+".link5",L(planar(F,S.A,J.Aq,ang2(sub(F._2.B,F._2.A),sub(J.Bq,J.Aq)))));
+    const mcp=(J.mcp-J0.mcp)/D2R,pip=(J.pip-J0.pip)/D2R,dip=(J.dip-J0.dip)/D2R;
+    jointLog[f]={pulley:+th.toFixed(1),cable_mm:+cable.toFixed(2),abd:+byV[`q_abd_${f}`].val.toFixed(1),crank:+((crank/D2R)-K.th_open).toFixed(1),mcp:+mcp.toFixed(1),pip:+pip.toFixed(1),dip:+dip.toFixed(1)};
+    document.getElementById("j_"+f).textContent=`${cableTxt} · MCP ${mcp.toFixed(0)}° · PIP ${pip.toFixed(0)}° · DIP ${dip.toFixed(0)}°`;
+  }
+}
+function set(link,T){(linkGroups[link]||[]).forEach(m=>m.matrix.copy(T));}
+function setHi(m,on){m.hi=on;(motorMeshes[m.id]||[]).forEach(x=>{x.material.emissive.set(on?css("--hi"):"#000");x.material.emissiveIntensity=on?.7:0;});draw();}
+function refresh(){
+  MOTORS.forEach(m=>{document.getElementById("in_"+m.v).value=m.val;document.getElementById("val_"+m.v).textContent=(m.val>0&&m.unit==="°"?"+":"")+Math.round(m.val)+m.unit;});
+  pose();document.getElementById("state").textContent=JSON.stringify(stateObj());draw();
+}
+
+// ---------- Orbit camera (Z up, mm) ----------
+let yaw=-2.0,pitch=0.22,dist=760;const target=new THREE.Vector3(0,-25,-15);
+function placeCam(){camera.position.set(target.x+dist*Math.cos(pitch)*Math.cos(yaw),target.y+dist*Math.cos(pitch)*Math.sin(yaw),target.z+dist*Math.sin(pitch));camera.lookAt(target);dl.position.copy(camera.position).add(new THREE.Vector3(0,0,200));}
+const ptrs=new Map();let pinch0=0;
+cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);if(ptrs.size===2)pinch0=pd();});
+cv.addEventListener("pointermove",e=>{if(!ptrs.has(e.pointerId))return;const p=ptrs.get(e.pointerId);
+  if(ptrs.size===1){yaw-=(e.clientX-p[0])*0.008;pitch=Math.max(-1.4,Math.min(1.4,pitch+(e.clientY-p[1])*0.008));}
+  ptrs.set(e.pointerId,[e.clientX,e.clientY]);if(ptrs.size===2){const d=pd();dist=Math.max(150,Math.min(1200,dist*pinch0/d));pinch0=d;}placeCam();draw();});
+const up=e=>ptrs.delete(e.pointerId);cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
+function pd(){const [a,b]=[...ptrs.values()];return Math.hypot(a[0]-b[0],a[1]-b[1])||1;}
+cv.addEventListener("wheel",e=>{e.preventDefault();dist=Math.max(150,Math.min(1200,dist*(1+e.deltaY*0.001)));placeCam();draw();},{passive:false});
+function resize(){const r=cv.parentElement.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();draw();}
+new ResizeObserver(resize).observe(cv.parentElement);
+function draw(){placeCam();renderer.render(scene,camera);}
+
+// ---------- Demo sweep ----------
+let raf=null,t0=0;
+function animate(t){if(!t0)t0=t;const s=(t-t0)/1000;
+  FINGERS.forEach((f,i)=>{byV[`q_pulley_${f}`].val=PULLEY_MAX*(0.5+0.5*Math.sin(s*1.4-i*0.5));byV[`q_abd_${f}`].val=15*Math.sin(s*0.8+i);});
+  byV.q_wrist.val=35*Math.sin(s*0.6);refresh();raf=requestAnimationFrame(animate);}
+function stopAnim(){if(raf){cancelAnimationFrame(raf);raf=null;document.getElementById("anim").textContent="Animate";}}
+document.getElementById("anim").addEventListener("click",e=>{if(raf)return stopAnim();t0=0;e.target.textContent="Stop";raf=requestAnimationFrame(animate);});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{paint();draw();});
+new MutationObserver(()=>{paint();draw();}).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+paint();placeCam();applyPreset("open");resize();
+load().then(()=>applyPreset("open")).catch(err=>{document.getElementById("loading").textContent="Could not load the model files: "+err.message;});
+</script>
+
+</body>
+</html>
