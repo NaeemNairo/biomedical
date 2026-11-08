@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="author" content="Mohammed Naeem Nairokh">
 <link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
-<style>html,body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
-<title>Robotic Hand Joint Simulator</title>
+<style>html,body{margin:0}body.embed #backlink{display:none}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>NeuroGrip Joint Simulator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -89,13 +89,13 @@ pre { margin: 0; font: 11px/1.5 var(--font-mono); color: var(--muted); backgroun
 
 </head>
 <body>
-<a href="../../projects/emg-robotic-hand.html" style="position:fixed;z-index:20;left:max(12px,env(safe-area-inset-left,0px));bottom:12px;font:500 12px 'IBM Plex Mono',ui-monospace,monospace;color:#9aa3b2;background:rgba(10,12,17,.85);border:1px solid #2a3140;border-radius:4px;padding:6px 10px;text-decoration:none">← Project page</a>
+<a id="backlink" href="../../projects/emg-robotic-hand.html" style="position:fixed;z-index:20;left:max(12px,env(safe-area-inset-left,0px));bottom:12px;font:500 12px 'IBM Plex Mono',ui-monospace,monospace;color:#9aa3b2;background:rgba(10,12,17,.85);border:1px solid #2a3140;border-radius:4px;padding:6px 10px;text-decoration:none">← Project page</a>
 <div class="wrap">
   <section class="view">
     <canvas id="cv" aria-label="3D block model of the robotic hand"></canvas>
     <div class="view-head">
       <div>
-        <h1>Robotic Hand Joint Simulator</h1>
+        <h1>NeuroGrip Joint Simulator</h1>
         <p>Your STEP assembly, driven by 11 motor variables.</p>
       </div>
       <div class="legend">
@@ -129,6 +129,8 @@ pre { margin: 0; font: 11px/1.5 var(--font-mono); color: var(--muted); backgroun
   </aside>
 </div>
 
+<script>document.documentElement.dataset.theme = "dark"; // match the portfolio site
+if (location.hash === "#embed") document.body.classList.add("embed");</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // ---------- Motor variables ----------
