@@ -6,7 +6,7 @@
 <meta name="author" content="Mohammed Naeem Nairokh">
 <link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
 <style>html,body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
-<title>EMG Hand Control Network</title>
+<title>NeuroGrip EMG Network</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: movement picker on top, network canvas (left) + robotic hand (right), signal-chain strip, then explanation + 11-output table. Single dark "lab scope" look by choice. */
@@ -60,6 +60,8 @@ button.on { border-color: var(--c, var(--trace)); background: color-mix(in srgb,
 .cap { position: absolute; left: 12px; top: 10px; font: 400 11px var(--font-mono); color: var(--muted); pointer-events: none; }
 .chain { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
 .step { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; transition: border-color .2s, background .2s; min-width: 0; }
+body.embed header, body.embed .explain, body.embed #backlink { display: none; }
+body.embed .wrap { padding-block: 4px 8px; }
 .step b { font: 600 13px var(--font-display); letter-spacing: .04em; }
 .step span { font: 400 11px var(--font-mono); color: var(--muted); line-height: 1.45; }
 .step.hot { border-color: var(--hc); background: color-mix(in srgb, var(--hc) 12%, var(--panel)); }
@@ -93,11 +95,11 @@ td.act { color: var(--muted); }
 
 </head>
 <body>
-<a href="../../projects/emg-robotic-hand.html" style="position:fixed;z-index:20;left:max(12px,env(safe-area-inset-left,0px));bottom:12px;font:500 12px 'IBM Plex Mono',ui-monospace,monospace;color:#9aa3b2;background:rgba(10,12,17,.85);border:1px solid #2a3140;border-radius:4px;padding:6px 10px;text-decoration:none">← Project page</a>
+<a id="backlink" href="../../projects/emg-robotic-hand.html" style="position:fixed;z-index:20;left:max(12px,env(safe-area-inset-left,0px));bottom:12px;font:500 12px 'IBM Plex Mono',ui-monospace,monospace;color:#9aa3b2;background:rgba(10,12,17,.85);border:1px solid #2a3140;border-radius:4px;padding:6px 10px;text-decoration:none">← Project page</a>
 <div class="wrap">
   <header>
     <div>
-      <h1>EMG Hand Control Network</h1>
+      <h1>NeuroGrip · EMG Network</h1>
       <p class="sub">11 degrees of freedom: each finger bends (tendon pulley) and turns side to side (knuckle servo), plus the wrist. Pick any movement and watch its muscle signal travel through the network to its actuator.</p>
     </div>
   </header>
@@ -145,6 +147,7 @@ td.act { color: var(--muted); }
   </section>
 </div>
 
+<script>if (location.hash === "#embed") document.body.classList.add("embed");</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // ---------- movements (11 DOF) ----------
