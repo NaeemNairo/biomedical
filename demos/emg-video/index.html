@@ -28,7 +28,7 @@
 }
 html, body { background: var(--bg); color: var(--ink); }
 body { font-family: var(--font-body); font-size: 14px; }
-.wrap { max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px;
+.wrap { max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; container-type: inline-size;
   padding-block: 18px 22px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; }
 h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(22px, 3vw, 30px); letter-spacing: .02em; margin: 0; text-wrap: balance; }
@@ -38,12 +38,15 @@ button { font: 600 12.5px var(--font-display); letter-spacing: .04em; color: var
 button:hover { border-color: var(--muted); }
 button:focus-visible { outline: 2px solid var(--trace); outline-offset: 2px; }
 button.on { border-color: var(--trace); background: color-mix(in srgb, var(--trace) 18%, var(--panel)); }
-.stage { display: grid; grid-template-columns: 300px minmax(0, 1fr) 330px; grid-template-areas: "vid net hand"; gap: 14px; }
+/* --h: panel height. Video column is exactly 9:16 (no cropping); the hand column is a portrait 5:8 to fit the upright hand. */
+.stage { --h: clamp(320px, 44cqw, 590px); display: grid; grid-template-columns: calc(var(--h) * 9 / 16) minmax(0, 1fr) calc(var(--h) * .62);
+  grid-template-areas: "vid net hand"; gap: 14px; align-items: stretch; }
+.stage > .box { height: var(--h); }
 .box { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; position: relative; overflow: hidden; }
 .vbox { grid-area: vid; } .nbox { grid-area: net; } .hbox { grid-area: hand; }
-video { display: block; width: 100%; height: 560px; object-fit: cover; background: #000; }
-#net { display: block; width: 100%; height: 560px; }
-#hand { display: block; width: 100%; height: 560px; touch-action: none; cursor: grab; }
+video { display: block; width: 100%; height: 100%; object-fit: cover; background: #000; }
+#net { display: block; width: 100%; height: 100%; }
+#hand { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
 .loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font: 400 12px var(--font-mono); pointer-events: none; text-align: center; padding: 16px; }
 .legend { position: absolute; right: 12px; bottom: 10px; display: flex; flex-direction: column; gap: 3px; font: 400 10px var(--font-mono); color: var(--muted); pointer-events: none; }
 .legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 6px; vertical-align: -1px; background: var(--c); border-radius: 2px; }
@@ -51,10 +54,9 @@ video { display: block; width: 100%; height: 560px; object-fit: cover; backgroun
 .vbox .cap { color: #cfd5df; text-shadow: 0 1px 3px #000; }
 .now { position: absolute; left: 10px; bottom: 10px; font: 600 13px var(--font-display); letter-spacing: .05em; text-transform: uppercase;
   background: rgba(10,12,17,.82); border: 1px solid var(--line); border-left: 3px solid var(--gc, var(--trace)); border-radius: 4px; padding: 5px 9px; pointer-events: none; }
-.hbox .now { bottom: auto; top: 30px; }
 .bar-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .track { position: relative; flex: 1 1 320px; height: 30px; display: flex; border-radius: 4px; overflow: hidden; border: 1px solid var(--line); background: var(--panel); cursor: pointer; }
-.seg { height: 100%; background: color-mix(in srgb, var(--gc) 26%, var(--panel)); border-right: 1px solid var(--bg); font: 500 10px var(--font-mono); color: var(--ink);
+.seg { height: 100%; padding: 0 3px; background: color-mix(in srgb, var(--gc) 26%, var(--panel)); border-right: 1px solid var(--bg); font: 500 10px var(--font-mono); color: var(--ink);
   display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; min-width: 0; }
 .seg.cur { background: color-mix(in srgb, var(--gc) 55%, var(--panel)); }
 .head { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 6px #fff; pointer-events: none; }
@@ -82,19 +84,18 @@ td.act { color: var(--muted); }
 .tblwrap { overflow-x: auto; }
 .note { color: var(--muted); font-size: 12px; margin: 10px 0 0; line-height: 1.5; }
 @media (max-width: 1100px) {
-  .stage { grid-template-columns: 270px minmax(0, 1fr); grid-template-areas: "vid hand" "net net"; }
-  video, #hand { height: 480px; }
   .chain { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .explain { grid-template-columns: 1fr; }
 }
+/* Narrow screens: video and hand side by side at the same height, network full width below */
+@container (max-width: 760px) {
+  .stage { --h: clamp(260px, 82cqw, 480px); grid-template-columns: calc(var(--h) * 9 / 16) minmax(0, 1fr); grid-template-areas: "vid hand" "net net"; gap: 8px; }
+  .stage > .nbox { height: clamp(380px, 100cqw, 520px); }
+}
 @media (max-width: 600px) {
-  .stage { gap: 8px; grid-template-columns: 169px minmax(0, 1fr); }
-  video, #hand { height: 300px; }
-  #net { height: 420px; }
   .chain { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .legend, .hbox .cap { display: none; }
-  .hbox .now { top: 10px; }
-  .now { font-size: 11px; padding: 4px 7px; }
+  .legend, .cap { display: none; }
+  .now { font-size: 11px; padding: 4px 7px; left: 8px; bottom: 8px; }
   .seg { font-size: 0; }
 }
 </style>
@@ -116,7 +117,7 @@ td.act { color: var(--muted); }
       <div class="now" id="nowV">Open hand</div>
     </div>
     <div class="box nbox"><canvas id="net" aria-label="EMG channels flowing through the neural network to 11 outputs, matched to the video"></canvas><div class="cap">filtered EMG, last 2 s</div></div>
-    <div class="box hbox"><canvas id="hand" aria-label="3D model of the robotic hand performing the same gestures as the video"></canvas><div class="cap">3D model · drag to orbit</div><div class="now" id="nowH">Open hand</div><div class="loading" id="loading">Loading 3D model…</div><div class="legend"><span style="--c:var(--pulley)">bend pulley</span><span style="--c:var(--servo)">side servo</span><span style="--c:#2e9b74">wrist servo</span></div></div>
+    <div class="box hbox"><canvas id="hand" aria-label="3D model of the robotic hand performing the same gestures as the video"></canvas><div class="cap">robotic hand · drag to orbit</div><div class="now" id="nowH">Open hand</div><div class="loading" id="loading">Loading 3D model…</div><div class="legend"><span style="--c:var(--pulley)">bend pulley</span><span style="--c:var(--servo)">side servo</span><span style="--c:#2e9b74">wrist servo</span></div></div>
   </section>
 
   <div class="bar-row">
@@ -182,10 +183,10 @@ const SIDE_DIR = [1, 1, .35, -1, -1], SIDE_MAX = 25, WRIST_MAX = 50;
 // Pose = 11 outputs: [thumb, index, middle, ring, pinky bend (0 open → 1 closed),
 //                     thumb, index, middle, ring, pinky side (+ spread / across palm, − toward the pinky), wrist]
 const P = (tF,iF,mF,rF,pF, tS=0,iS=0,mS=0,rS=0,pS=0, w=0) => [tF,iF,mF,rF,pF,tS,iS,mS,rS,pS,w];
-const REL = P(0,0,0,0,0, 0,.3,.3,.3,.3), SPREAD = P(0,0,0,0,0, 0,1,1,1,1), TOG = P(0,0,0,0,0),
-      FIST = P(.85,1,1,1,1), POINT = P(.85,0,1,1,1), L_SHAPE = P(0,0,1,1,1), THUMBUP = P(0,1,1,1,1),
-      PEACE = P(.85,0,0,1,1, 0,.8,-.8,0,0), THREE_UP = P(0,0,0,1,1, 0,.6,-.6,0,0),
-      SWEEP = P(.85,0,1,1,1, 0,-.9), W_FIST = P(.85,1,1,1,1, 0,0,0,0,0, 1), W_FLAT = P(0,0,0,0,0, 0,0,0,0,0, 1);
+const REL = P(0,0,0,0,0, 0,.3,.3,.3,.3), SPREAD = P(0,0,0,0,0, -.6,1,1,1,1), TOG = P(0,0,0,0,0),
+      FIST = P(.85,1,1,1,1), POINT = P(.85,0,1,1,1), L_SHAPE = P(0,0,1,1,1, -.5), THUMBUP = P(0,1,1,1,1, -.3),
+      PEACE = P(.85,0,0,1,1, 0,.8,-.8,0,0), THREE_UP = P(0,0,0,1,1, -.5,.6,-.6,0,0),
+      SWEEP = P(.85,0,1,1,1, 0,-1), W_FIST = P(.85,1,1,1,1, 0,0,0,0,0, 1), W_FLAT = P(0,0,0,0,0, 0,0,0,0,0, 1);
 const KF = [
   [0,"Spread",SPREAD],[0.9,"Spread",SPREAD],
   [1.25,"Open hand",REL],[1.8,"Open hand",REL],
@@ -221,7 +222,7 @@ const KF = [
   [24.8,"Peace",PEACE],[26.25,"Peace",PEACE],
   [26.5,"Middle bends",P(.85,0,.6,1,1, 0,.4)],
   [26.8,"Point",POINT],[27.5,"Point",POINT],
-  [27.8,"Index sweep",P(.85,.3,1,1,1, 0,-.9)],[28.0,"Index sweep",P(.85,0,1,1,1, 0,-.6)],
+  [27.8,"Index sweep",P(.85,.3,1,1,1, 0,-1)],[28.0,"Index sweep",P(.85,0,1,1,1, 0,-.8)],
   [28.25,"Point",POINT],
   [28.5,"Peace",PEACE],
   [28.75,"Index sweep",SWEEP],
@@ -289,15 +290,16 @@ const SAMPLES = 360, buf = Array.from({length:8}, () => new Float32Array(SAMPLES
 const vid = document.getElementById("vid"), track = document.getElementById("track"), headbar = document.getElementById("headbar");
 const playBtn = document.getElementById("play"), slowBtn = document.getElementById("slow");
 let DUR = 33.17;
-vid.addEventListener("loadedmetadata", () => { if (isFinite(vid.duration)) DUR = vid.duration; buildTrack(); });
+vid.addEventListener("loadedmetadata", () => { if (isFinite(vid.duration)) DUR = vid.duration; buildTrack(); fitLabels(); });
 function buildTrack(){
   track.querySelectorAll(".seg").forEach(s => s.remove());
   SEGS.forEach(S => { const d = Math.min(S.end, DUR) - S.start; if (d <= 0) return;
     const el = document.createElement("div"); el.className = "seg"; el.style.flex = `${d} 0 0`; el.style.setProperty("--gc", GCOL[S.label] || TRACE);
-    el.textContent = d > 1.2 ? S.label : ""; el.title = `${S.label} · ${S.start.toFixed(1)} s`; S.el = el; track.insertBefore(el, headbar); });
+    el.textContent = S.label; el.title = `${S.label} · ${S.start.toFixed(1)} s`; S.el = el; track.insertBefore(el, headbar); });
   track.setAttribute("aria-valuemax", DUR.toFixed(1));
 }
-buildTrack();
+function fitLabels(){ SEGS.forEach(S => { if (!S.el) return; S.el.textContent = S.label; if (S.el.scrollWidth > S.el.clientWidth - 6) S.el.textContent = ""; }); }
+buildTrack(); fitLabels(); new ResizeObserver(fitLabels).observe(track);
 function seekTo(clientX){ const r = track.getBoundingClientRect(); vid.currentTime = Math.max(0, Math.min(.999, (clientX - r.left) / r.width)) * DUR; }
 let scrubbing = false;
 track.addEventListener("pointerdown", e => { scrubbing = true; track.setPointerCapture(e.pointerId); seekTo(e.clientX); });
@@ -317,11 +319,12 @@ let NW=0, NH=0;
 function fit(){ const dpr = Math.min(devicePixelRatio || 1, 2);
   NW = net.clientWidth; NH = net.clientHeight; net.width = NW*dpr; net.height = NH*dpr; nctx.setTransform(dpr,0,0,dpr,0,0); }
 new ResizeObserver(fit).observe(net);
-const narrow = () => NW < 640;
+const narrow = () => NW < 640, showOut = () => NW >= 330;
+const SPAN = [0, .171, .342, .513, .684, .846, 1];   // layer spacing between the electrodes and the outputs
 function nodePos(li, i){
-  const L = LAYERS[li], top = 40, bot = NH - 50;
-  const xs = narrow() ? [.06, .22, .37, .52, .66, .79, .91] : NW < 900 ? [.25, .35, .45, .55, .645, .735, .82] : null;
-  const x = (xs ? xs[li] : L.x) * NW;
+  const top = 34, bot = NH - 46, L = LAYERS[li];
+  const xe = narrow() ? Math.max(44, NW * .17) : NW * .27, xo = showOut() ? (NW < 1000 ? NW - 92 : NW * .875) : NW - 14;
+  const x = xe + (xo - xe) * SPAN[li];
   const y = top + (bot - top) * (L.n <= 11 ? (i + .5) / L.n : i / (L.n - 1));
   return [x, y];
 }
@@ -392,18 +395,20 @@ function drawNet(now){
     const L = LAYERS[li], big = li === 0 || li === OUT, r = big ? (li === OUT ? 6 : 7) : L.n >= 128 ? 1.9 : L.n >= 64 ? 2.6 : 3.4;
     for (let i=0; i<L.n; i++) {
       const [x,y] = nodePos(li,i), a = act[li][i], col = li === OUT ? MOVES[i].col : actCol[li][i] >= 0 ? MOVES[actCol[li][i]].col : NEURON;
-      if (a > .05) { c.globalAlpha = .35*a; c.fillStyle = col; c.beginPath(); c.arc(x,y,r*3.2,0,7); c.fill(); }
+      if (a > .05) { const gap = (NH - 80) / L.n; c.globalAlpha = .35*a; c.fillStyle = col; c.beginPath(); c.arc(x,y,Math.min(r*3.2, Math.max(r*1.6, gap*.48)),0,7); c.fill(); }
       c.globalAlpha = 1; c.fillStyle = a > .05 ? mix(NEURON, col, a) : (big ? PANEL : NEURON);
       c.strokeStyle = li === OUT ? MOVES[i].col : NEURON; c.lineWidth = big ? 1.6 : 0;
       c.setLineDash(li === OUT && MOVES[i].kind === "side" ? [2.5,2] : []);
       c.beginPath(); c.arc(x,y,r,0,7); c.fill(); if (big) c.stroke(); c.setLineDash([]);
-      if (li === OUT && !narrow()) { const M = MOVES[i]; c.fillStyle = INK; c.fillText(M.short, x + 12, y - 5); c.fillStyle = MUTED; c.fillText(out[i].toFixed(2), x + 12, y + 8); }
+      if (li === OUT && showOut()) { const M = MOVES[i]; c.fillStyle = INK; c.fillText(M.short, x + 12, y - 5); c.fillStyle = MUTED; c.fillText(fmt(out[i]), x + 12, y + 8); }
     }
   }
   c.textAlign = "center"; c.fillStyle = MUTED;
-  for (let li=0; li<LAYERS.length; li++) { const x = nodePos(li,0)[0]; c.fillText(LAYERS[li].name, x, NH - 30); if (LAYERS[li].sub) c.fillText(LAYERS[li].sub, x, NH - 16); }
+  const SHORT = ["EMG","conv","conv","conv","dense","dense","out"];
+  for (let li=0; li<LAYERS.length; li++) { const x = nodePos(li,0)[0]; if (NW >= 400) c.fillText(narrow() ? SHORT[li] : LAYERS[li].name, x, NH - 26); c.fillText(LAYERS[li].sub || "8", x, NH - 12); }
   c.textAlign = "left";
 }
+const fmt = v => (Math.abs(v) < .02 ? 0 : v).toFixed(2);
 function mix(a, b, t){ const pa = hex(a), pb = hex(b); return `rgb(${pa.map((v,i)=>Math.round(v+(pb[i]-v)*t)).join(",")})`; }
 function hex(h){ h = h.replace("#",""); return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16)); }
 
@@ -492,8 +497,8 @@ function pose3d(){
   });
   for (let m=0; m<NM; m++) (motorMat[m] || []).forEach(mt => { mt.emissive.set(MOVES[m].col); mt.emissiveIntensity = .38*env[m]; });
 }
-// orbit camera (same default view as the EMG network demo)
-let yaw = -2.0, pitch = .22, dist = 800;
+// orbit camera: palm toward the viewer, fingers up, thumb on the right, as in the video
+let yaw = -Math.PI/2, pitch = .1, dist = 720;
 function placeCam(){ camera.position.set(target.x+dist*Math.cos(pitch)*Math.cos(yaw), target.y+dist*Math.cos(pitch)*Math.sin(yaw), target.z+dist*Math.sin(pitch));
   camera.lookAt(target.x, target.y, target.z); dl.position.copy(camera.position); dl.position.z += 200; }
 const ptrs = new Map(); let pinch0 = 0;
@@ -518,7 +523,7 @@ tbl.innerHTML = MOVES.map((M,m) => `<tr><td><span style="color:${M.col}">${M.kin
   <td><div class="bar${M.kind!=="flex"?" mid":""}" style="--c:${M.col}"><i id="ob${m}"></i></div></td><td class="act">${M.motor} ${M.act}</td><td id="p${m}">0°</td></tr>`).join("");
 function angleOf(m){ const M = MOVES[m]; if (M.kind === "flex") return pos[m]*180; if (M.kind === "wrist") return pos[m]*WRIST_MAX; return pos[m]*SIDE_MAX*(M.f===0?1:SIDE_DIR[M.f]); }
 function updateTable(){ for (let m=0;m<NM;m++){ const M = MOVES[m], b = document.getElementById("ob"+m), a = angleOf(m);
-  document.getElementById("o"+m).textContent = out[m].toFixed(2);
+  document.getElementById("o"+m).textContent = fmt(out[m]);
   if (M.kind === "flex") { b.style.left = "0"; b.style.width = (Math.max(0,out[m])*100).toFixed(0)+"%"; }
   else { const v = M.kind === "wrist" ? out[m] : out[m]*(M.f===0?1:Math.sign(SIDE_DIR[M.f])); const w = Math.min(1,Math.abs(v))*50; b.style.left = (v >= 0 ? 50 : 50 - w)+"%"; b.style.width = w+"%"; }
   document.getElementById("p"+m).textContent = (M.kind !== "flex" && a > .5 ? "+" : "") + Math.round(a) + "°"; } }

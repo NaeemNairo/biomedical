@@ -267,7 +267,7 @@
   // NeuroGrip demo tabs: same-origin iframe, so the network demo can be sized to its content
   (function(){
     var frame=document.getElementById("ng-frame"), open=document.getElementById("ng-open"), tabs=document.querySelectorAll(".ng-tab"), mode="auto";
-    function fit(){ try { if (mode==="auto") { var d=frame.contentDocument; if (d && d.body) frame.style.height=(d.documentElement.scrollHeight)+"px"; } else frame.style.height=""; } catch(e){} }
+    function fit(){ try { if (mode==="auto") { var d=frame.contentDocument; if (d && d.body) frame.style.height=(Math.ceil(d.body.getBoundingClientRect().height))+"px"; } else frame.style.height=""; } catch(e){} }
     frame.addEventListener("load", function(){ fit(); setTimeout(fit,800); try { new ResizeObserver(fit).observe(frame.contentDocument.body); } catch(e){} });
     window.addEventListener("resize", fit);
     tabs.forEach(function(t){ t.addEventListener("click", function(){
