@@ -240,6 +240,12 @@ dialog.lightbox::backdrop { background: rgba(0,0,0,.78); }
 .figure-grid .figure { margin: 0; }
 .figure-grid .figure img { width: 100%; border-radius: 8px; }
 .gg-photos img { aspect-ratio: 4 / 3; object-fit: cover; object-position: center 35%; }
+.gg-photos .gg-wide { grid-column: 1 / -1; }
+.gg-photos .gg-wide img { aspect-ratio: 16 / 9; object-position: center 55%; }
+.collab { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 18px; }
+.collab-label { font: 600 .72rem/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+.collab-org { font: 600 .95rem/1 var(--serif); color: var(--ink); padding: 9px 14px; border: 1px solid var(--accent-line); border-radius: 999px; background: var(--accent-soft); }
+.collab-x { color: var(--accent); font-weight: 600; }
 @media (max-width: 700px) { .figure-grid { grid-template-columns: 1fr; } }
 .note { padding: 14px 16px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 10px 10px 0; font-size: .95rem; color: var(--ink); }
 .back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; text-decoration: none; font-weight: 500; }
