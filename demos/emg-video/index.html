@@ -122,8 +122,8 @@ td.act { color: var(--muted); }
   <div class="bar-row">
     <button id="play" aria-label="Pause video">Pause</button>
     <button id="slow" aria-pressed="false">0.5× speed</button>
-    <div class="track" id="track" role="slider" tabindex="0" aria-label="Gesture timeline, click to jump" aria-valuemin="0" aria-valuemax="28" aria-valuenow="0"><div class="head" id="headbar"></div></div>
-    <span class="time" id="time">0.0 / 28.4 s</span>
+    <div class="track" id="track" role="slider" tabindex="0" aria-label="Gesture timeline, click to jump" aria-valuemin="0" aria-valuemax="33" aria-valuenow="0"><div class="head" id="headbar"></div></div>
+    <span class="time" id="time">0.0 / 33.2 s</span>
   </div>
 
   <section class="chain" id="chain">
@@ -139,7 +139,7 @@ td.act { color: var(--muted); }
     <div class="box">
       <h2>What you're seeing</h2>
       <p id="story"></p>
-      <p class="note">The 3D hand's poses are matched to the video frame by frame. The forearm turn in the pinch is shown on the hand's wrist servo, since the robotic hand has one wrist axis. Network activations are illustrative; layer sizes match the real architecture.</p>
+      <p class="note">The 3D hand's poses are matched to the video frame by frame. Network activations are illustrative; layer sizes match the real architecture.</p>
     </div>
     <div class="box">
       <h2>Network output → actuator</h2>
@@ -183,37 +183,58 @@ const SIDE_DIR = [1, 1, .35, -1, -1], SIDE_MAX = 25, WRIST_MAX = 50;
 //                     thumb, index, middle, ring, pinky side (+ spread / across palm, − toward the pinky), wrist]
 const P = (tF,iF,mF,rF,pF, tS=0,iS=0,mS=0,rS=0,pS=0, w=0) => [tF,iF,mF,rF,pF,tS,iS,mS,rS,pS,w];
 const REL = P(0,0,0,0,0, 0,.3,.3,.3,.3), SPREAD = P(0,0,0,0,0, 0,1,1,1,1), TOG = P(0,0,0,0,0),
-      FIST = P(.85,1,1,1,1), POINT = P(.85,0,1,1,1), POINT_L = P(0,0,1,1,1),
-      PINCH = P(.55,.7,1,1,1, .8,0,0,0,0, .9);
+      FIST = P(.85,1,1,1,1), POINT = P(.85,0,1,1,1), L_SHAPE = P(0,0,1,1,1), THUMBUP = P(0,1,1,1,1),
+      PEACE = P(.85,0,0,1,1, 0,.8,-.8,0,0), THREE_UP = P(0,0,0,1,1, 0,.6,-.6,0,0),
+      SWEEP = P(.85,0,1,1,1, 0,-.9), W_FIST = P(.85,1,1,1,1, 0,0,0,0,0, 1), W_FLAT = P(0,0,0,0,0, 0,0,0,0,0, 1);
 const KF = [
-  [0,"Open hand",REL],[2.55,"Open hand",REL],
-  [2.95,"Pinky bends",P(0,0,0,0,1, 0,.3,.3,.3,0)],
-  [3.3,"Ring bends",P(0,0,0,1,1, 0,.3,.3,0,0)],
-  [3.75,"Middle bends",P(0,0,.7,1,1)],
-  [4.05,"Point",POINT_L],[4.45,"Point",POINT_L],
-  [4.75,"Index bends",P(.2,.6,1,1,1)],
-  [5.15,"Point",P(.2,0,1,1,1)],
-  [5.5,"Fist",FIST],[6.3,"Fist",FIST],
-  [6.65,"Open hand",REL],[7.05,"Open hand",REL],
-  [7.4,"Fist",FIST],[8.1,"Fist",FIST],
-  [8.5,"Spread",SPREAD],[9.6,"Spread",SPREAD],
-  [10.5,"Point",POINT],[12.75,"Point",POINT],[13.0,"Point",P(.85,.4,1,1,1)],[13.4,"Point",POINT],
-  [14.0,"Fist",FIST],[14.6,"Fist",FIST],
-  [15.0,"Spread",SPREAD],[15.5,"Fingers together",TOG],[16.0,"Spread",SPREAD],
-  [16.5,"Fingers together",P(0,0,0,0,0, 0,.2,.2,.2,.2)],[17.0,"Fingers together",TOG],
-  [17.5,"Spread",SPREAD],[18.25,"Spread",SPREAD],
-  [18.5,"Fist",FIST],[19.0,"Fist",FIST],
-  [19.3,"Wrist turn",P(0,.1,.9,.9,.9, 0,0,0,0,0, .9)],
-  [19.75,"Pinch",PINCH],[20.75,"Pinch",PINCH],
-  [21.0,"Spread",SPREAD],[21.5,"Fingers together",TOG],[22.1,"Fingers together",TOG],
-  [22.5,"Fist",FIST],[22.8,"Fist",FIST],
-  [23.1,"Open hand",REL],[23.6,"Open hand",REL],
-  [24.0,"Point",POINT_L],[26.3,"Point",POINT_L],
-  [27.3,"Index sweep",P(0,0,1,1,1, 0,-.9)],[27.6,"Index sweep",P(0,0,1,1,1, 0,-.9)],
-  [28.0,"Point",POINT_L],
-  [28.25,"Fist",FIST],[28.5,"Fist",FIST]];
+  [0,"Spread",SPREAD],[0.9,"Spread",SPREAD],
+  [1.25,"Open hand",REL],[1.8,"Open hand",REL],
+  [2.1,"Spread",SPREAD],[2.3,"Spread",SPREAD],
+  [2.6,"Pinky bends",P(0,0,0,.4,1, 0,1,1,.6,0)],
+  [2.9,"Ring bends",P(0,0,.3,1,1, 0,.8,.5,0,0)],
+  [3.25,"Middle bends",P(0,0,1,1,1, 0,.5)],
+  [3.75,"L shape",L_SHAPE],
+  [4.05,"Thumbs up",THUMBUP],[4.3,"Thumbs up",THUMBUP],
+  [4.55,"Fist",FIST],[5.5,"Fist",FIST],
+  [5.8,"Spread",SPREAD],[6.5,"Spread",SPREAD],
+  [6.95,"Fist",FIST],[7.8,"Fist",FIST],
+  [8.1,"Spread",SPREAD],[9.0,"Spread",SPREAD],
+  [9.3,"L shape",P(0,0,1,1,1, 0,.3)],[9.7,"L shape",P(.4,0,1,1,1)],
+  [10.0,"Point",POINT],[11.0,"Point",POINT],
+  [11.3,"Index bends",P(.85,.5,1,1,1)],[11.55,"Index bends",P(.85,.8,1,1,1)],
+  [11.85,"Point",POINT],[12.05,"Point",POINT],
+  [12.3,"Index bends",P(.85,.85,1,1,1)],[12.5,"Index bends",P(.85,.85,1,1,1)],
+  [12.8,"Point",POINT],[13.3,"Point",POINT],
+  [13.8,"Spread",SPREAD],[14.5,"Spread",SPREAD],
+  [14.8,"Fingers together",TOG],[15.5,"Fingers together",TOG],
+  [15.8,"Spread",SPREAD],[16.5,"Spread",SPREAD],
+  [16.75,"Fist",FIST],[17.25,"Fist",FIST],
+  [17.55,"Wrist bend",W_FIST],[18.3,"Wrist bend",W_FIST],
+  [18.55,"Fist",FIST],[18.8,"Fist",FIST],
+  [19.05,"Spread",SPREAD],[19.55,"Spread",SPREAD],
+  [19.8,"Wrist bend",W_FLAT],[20.05,"Wrist bend",W_FLAT],
+  [20.35,"Spread",SPREAD],[20.8,"Spread",SPREAD],
+  [21.05,"Fist",FIST],[21.5,"Fist",FIST],
+  [21.8,"Spread",SPREAD],[22.5,"Spread",SPREAD],
+  [22.8,"Ring and pinky bend",P(0,0,0,1,1, 0,.7,-.5,0,0)],
+  [23.2,"Three",THREE_UP],[24.5,"Three",THREE_UP],
+  [24.8,"Peace",PEACE],[26.25,"Peace",PEACE],
+  [26.5,"Middle bends",P(.85,0,.6,1,1, 0,.4)],
+  [26.8,"Point",POINT],[27.5,"Point",POINT],
+  [27.8,"Index sweep",P(.85,.3,1,1,1, 0,-.9)],[28.0,"Index sweep",P(.85,0,1,1,1, 0,-.6)],
+  [28.25,"Point",POINT],
+  [28.5,"Peace",PEACE],
+  [28.75,"Index sweep",SWEEP],
+  [29.05,"Point",POINT],[29.3,"Point",POINT],
+  [29.5,"Index sweep",SWEEP],
+  [29.8,"Point",POINT],[30.05,"Point",POINT],
+  [30.25,"Three",THREE_UP],
+  [30.5,"Fist",FIST],[31.5,"Fist",FIST],
+  [31.75,"Open hand",P(0,.4,.4,.4,.4, 0,.3,.3,.3,.3)],
+  [32.0,"Spread",SPREAD],[33.3,"Spread",SPREAD]];
 const GCOL = {"Open hand":"#7fd0d6","Spread":"#5ee6a8","Fingers together":"#59b8ff","Fist":"#ff8a5b","Point":"#ffd166","Index bends":"#ffd166","Index sweep":"#ffd166",
-  "Pinky bends":"#c58bff","Ring bends":"#59b8ff","Middle bends":"#5ee6a8","Wrist turn":"#ff5d8f","Pinch":"#ff5d8f"};
+  "Pinky bends":"#c58bff","Ring bends":"#59b8ff","Middle bends":"#5ee6a8","Ring and pinky bend":"#c58bff","L shape":"#ffb86b","Thumbs up":"#ff8a5b",
+  "Wrist bend":"#ff5d8f","Peace":"#7fd0d6","Three":"#c58bff"};
 const ease = u => u*u*(3-2*u);
 function sample(t){ // interpolated pose + current gesture name at video time t
   let k = 0; while (k < KF.length-2 && KF[k+1][0] <= t) k++;
@@ -267,7 +288,7 @@ const SAMPLES = 360, buf = Array.from({length:8}, () => new Float32Array(SAMPLES
 // ---------- video + timeline controls ----------
 const vid = document.getElementById("vid"), track = document.getElementById("track"), headbar = document.getElementById("headbar");
 const playBtn = document.getElementById("play"), slowBtn = document.getElementById("slow");
-let DUR = 28.37;
+let DUR = 33.17;
 vid.addEventListener("loadedmetadata", () => { if (isFinite(vid.duration)) DUR = vid.duration; buildTrack(); });
 function buildTrack(){
   track.querySelectorAll(".seg").forEach(s => s.remove());
@@ -502,18 +523,22 @@ function updateTable(){ for (let m=0;m<NM;m++){ const M = MOVES[m], b = document
   else { const v = M.kind === "wrist" ? out[m] : out[m]*(M.f===0?1:Math.sign(SIDE_DIR[M.f])); const w = Math.min(1,Math.abs(v))*50; b.style.left = (v >= 0 ? 50 : 50 - w)+"%"; b.style.width = w+"%"; }
   document.getElementById("p"+m).textContent = (M.kind !== "flex" && a > .5 ? "+" : "") + Math.round(a) + "°"; } }
 const STORY = {
-  "Open hand": "All outputs sit near rest: the electrodes pick up only baseline activity, so the pulleys stay at 0° and the fingers stay open.",
-  "Pinky bends": "The flexor of the little finger fires first. Output 5 (pinky bend) rises alone and pulley M5 curls the pinky while the others stay open.",
-  "Ring bends": "The ring finger's flexor joins in. Outputs 4 and 5 are high, so pulleys M4 and M5 hold both fingers curled.",
-  "Middle bends": "The middle finger follows. Three bend outputs are now active, each through its own path in the network.",
-  "Point": "Middle, ring and pinky are curled while the index stays straight. The network keeps the index bend output near 0 even though its neighbours fire strongly, which is what makes a clean point.",
-  "Index bends": "The index starts to curl too: its bend output rises and pulley M2 pulls its tendon.",
-  "Fist": "Every bend output is high. All five pulleys turn and the tendons close the whole hand.",
+  "Open hand": "The fingers relax. Bend outputs stay near 0 and the side outputs ease back toward the middle.",
   "Spread": "The extensor side of the forearm lights up. The four side outputs go positive and the knuckle servos M7–M10 fan the fingers apart.",
   "Fingers together": "The side outputs return to zero, so the knuckle servos bring the fingers back together.",
-  "Wrist turn": "The forearm rotates. Activity spreads across most electrodes and the wrist output rises, tilting the hand on servo M11.",
-  "Pinch": "Thumb bend, thumb swing and index bend combine, so the thumb and index fingertips meet while the other fingers stay closed.",
-  "Index sweep": "The index stays straight but swings sideways. Only its side output moves, negative this time, so servo M7 turns it toward the little finger." };
+  "Pinky bends": "The flexor of the little finger fires first. Output 5 (pinky bend) rises and pulley M5 curls the pinky while the others stay open.",
+  "Ring bends": "The ring finger's flexor joins in. Outputs 4 and 5 are high, so pulleys M4 and M5 hold both fingers curled.",
+  "Middle bends": "The middle finger follows. Its bend output rises and pulley M3 pulls its tendon.",
+  "Ring and pinky bend": "Only the ring and pinky bend outputs rise, so pulleys M4 and M5 curl those two fingers and leave the rest up.",
+  "L shape": "Thumb and index stay straight while the other three fingers are curled. The network keeps the thumb and index bend outputs low even though their neighbours fire strongly.",
+  "Thumbs up": "Four bend outputs are high and the thumb's is near 0, so every finger curls except the thumb.",
+  "Fist": "Every bend output is high. All five pulleys turn and the tendons close the whole hand.",
+  "Point": "Middle, ring, pinky and thumb are curled while the index stays straight. Keeping the index output near 0 next to strongly firing neighbours is what makes a clean point.",
+  "Index bends": "The index curls as well: its bend output rises and pulley M2 pulls its tendon.",
+  "Index sweep": "The index stays straight but swings sideways. Only its side output moves, negative here, so servo M7 turns it toward the other fingers.",
+  "Wrist bend": "The wrist flexors fire. Activity spreads across most of the electrodes, the wrist output rises and servo M11 bends the whole hand.",
+  "Peace": "Index and middle stay straight and their side outputs move in opposite directions, so servos M7 and M8 open them into a V.",
+  "Three": "Thumb, index and middle stay up while the ring and pinky bend. Index and middle also spread apart on their side servos." };
 let lastLabel = "";
 function updateText(){
   if (label === lastLabel) return; lastLabel = label;
