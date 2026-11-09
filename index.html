@@ -42,7 +42,7 @@
         </div>
         <div class="hero-copy">
           <h1 id="hero-title">I design and test medical and assistive devices, from the sensor to the finished product.</h1>
-          <p class="hero-proof">M.S. in Biomedical Engineering at the University of New Haven (GPA 3.9) as a Fulbright Scholar, after 3+ years at AHL Logics taking products from concept to mass production with SOLIDWORKS, FEA and DFM, including a patent-pending folding mechanism.</p>
+          <p class="hero-proof">Biomedical and mechatronics engineer with 3+ years designing assistive mobility devices from concept to mass production. Certified SOLIDWORKS Expert with strong expertise in CAD, FEA, DFM, GD&amp;T, prototyping and verification testing, plus sensor integration and embedded systems (ESP32, STM32). Focused on translating clinical and user needs into functional devices users can rely on every day.</p>
           <div class="hero-actions">
             <a class="btn btn-primary" href="#projects"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> See my work</a>
             <a class="btn" href="resume.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg> Résumé</a>
@@ -54,7 +54,7 @@
       <div class="container" style="margin-top:clamp(36px,5vw,56px)">
         <dl class="stats reveal" aria-label="Key numbers">
           <div class="stat"><dt class="sr-only">Products launched</dt><dd style="margin:0" class="stat-num"><span data-count="3">3</span></dd><dd style="margin:0" class="stat-label">Products taken to mass production</dd></div>
-          <div class="stat"><dt class="sr-only">Patent applications</dt><dd style="margin:0" class="stat-num"><span data-count="5">5</span></dd><dd style="margin:0" class="stat-label">U.S. patent applications pending</dd></div>
+          <div class="stat"><dt class="sr-only">Patents pending</dt><dd style="margin:0" class="stat-num"><span data-count="5">5</span></dd><dd style="margin:0" class="stat-label">U.S. patents pending, as a team co-inventor</dd></div>
           <div class="stat"><dt class="sr-only">Weight reduction</dt><dd style="margin:0" class="stat-num"><span data-count="15">15</span><span class="unit">%+</span></dd><dd style="margin:0" class="stat-label">Part weight cut with FEA</dd></div>
           <div class="stat"><dt class="sr-only">GPA</dt><dd style="margin:0" class="stat-num"><span data-count="3.9" data-decimals="1">3.9</span></dd><dd style="margin:0" class="stat-label">M.S. GPA</dd></div>
         </dl>
@@ -74,17 +74,17 @@
 
     <section class="section" id="neurogrip" aria-labelledby="ng-title">
       <div class="container">
-        <div class="section-head"><div><p class="eyebrow">Featured project · live demo</p><h2 id="ng-title">NeuroGrip</h2><p class="ng-sub">Intelligent EMG-Based Robotic Hand Control</p></div>
+        <div class="section-head"><div><p class="eyebrow">Featured project</p><h2 id="ng-title">NeuroGrip</h2><p class="ng-sub">Intelligent EMG-Based Robotic Hand Control</p></div>
           <a class="link-more" href="projects/emg-robotic-hand.html">Read the project <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
-        <p class="ng-lede">A 3D-printed, 11-degree-of-freedom robotic hand that I control in real time from 8 channels of forearm EMG, using a neural network trained in PyTorch. Try it below: pick a movement and follow the muscle signal through the network to the motor that moves the hand. Open the joint simulator to see how each finger's linkage moves, or Video match to watch the hand copy a real recording of my forearm.</p>
-        <div class="ng-tabs" role="tablist" aria-label="NeuroGrip demos">
-          <button class="ng-tab" role="tab" id="ng-tab-net" aria-selected="true" aria-controls="ng-frame" data-src="demos/emg-network/index.html#embed" data-mode="auto">EMG network</button>
+        <p class="ng-lede">A 3D-printed, 11-degree-of-freedom robotic hand that I control in real time from 8 channels of forearm EMG, using a neural network trained in PyTorch. Below, my recorded forearm EMG plays beside the network and the hand performing the same gestures. Switch to EMG network to pick any movement yourself, or to the joint simulator to see how each finger's linkage moves.</p>
+        <div class="ng-tabs" role="tablist" aria-label="NeuroGrip views">
+          <button class="ng-tab" role="tab" id="ng-tab-vid" aria-selected="true" aria-controls="ng-frame" data-src="demos/emg-video/index.html#embed" data-mode="auto">Video match</button>
+          <button class="ng-tab" role="tab" id="ng-tab-net" aria-selected="false" aria-controls="ng-frame" data-src="demos/emg-network/index.html#embed" data-mode="auto">EMG network</button>
           <button class="ng-tab" role="tab" id="ng-tab-sim" aria-selected="false" aria-controls="ng-frame" data-src="demos/hand-simulator/index.html#embed" data-mode="fixed">Joint simulator</button>
-          <button class="ng-tab" role="tab" id="ng-tab-vid" aria-selected="false" aria-controls="ng-frame" data-src="demos/emg-video/index.html#embed" data-mode="auto">Video match</button>
-          <a class="ng-open" id="ng-open" href="demos/emg-network/index.html">Open full screen ↗</a>
+          <a class="ng-open" id="ng-open" href="demos/emg-video/index.html">Open full screen ↗</a>
         </div>
-        <div class="card ng-stage"><iframe id="ng-frame" title="NeuroGrip interactive demo" src="demos/emg-network/index.html#embed" loading="lazy"></iframe></div>
-        <p class="ng-note">Runs in your browser with the hand's real 3D model. Network activations in the demo are illustrative.</p>
+        <div class="card ng-stage"><iframe id="ng-frame" title="NeuroGrip: recorded forearm EMG, network and robotic hand" src="demos/emg-video/index.html#embed" loading="lazy"></iframe></div>
+        <p class="ng-note">Runs in your browser with the hand's real 3D model.</p>
       </div>
     </section>
 
@@ -107,7 +107,7 @@
             <div class="role-body">
               <h3>Product Design Engineer</h3>
               <p class="role-org">AHL Logics</p>
-              <ul><li>Developed four products from concept through prototyping and testing; three reached mass production and launch.</li><li><strong>WonderFold stroller wagon:</strong> designed the folding mechanism so the wagon folds easily and stays aligned. Co-inventor on 5 pending U.S. patent applications (1 utility, 4 design).</li><li><strong>Doona infant car seat and stroller:</strong> cut structural part weight by more than 15% with FEA, offsetting weight added by new features, and validated the predictions against prototype tests.</li><li><strong>Skarper e-bike conversion kit:</strong> designed the attachment mechanism, built and tested prototypes, and applied DFM for production.</li><li><strong>Walk Air folding walker for elderly users</strong> (prototype; stopped for budget reasons): validated the folding mechanism, built the load map, ran FEA safety checks, compared magnesium and carbon fiber against aluminum, and prepared parts for prototyping and ISO 11199 testing.</li><li>Wrote design specifications, test plans, drawings and BOMs, and coordinated design transfer with manufacturing, quality and suppliers.</li></ul>
+              <ul><li>Developed four products from concept through prototyping and testing; three reached mass production and launch.</li><li><strong>WonderFold stroller wagon:</strong> designed the folding mechanism so the wagon folds easily and stays aligned. Co-inventor, as part of the design team, on 5 U.S. patents pending.</li><li><strong>Doona infant car seat and stroller:</strong> cut structural part weight by more than 15% with FEA, offsetting weight added by new features, and validated the predictions against prototype tests.</li><li><strong>Skarper e-bike conversion kit:</strong> designed the attachment mechanism, built and tested prototypes, and applied DFM for production.</li><li><strong>Walk Air folding walker for elderly users</strong> (prototype; stopped for budget reasons): validated the folding mechanism, built the load map, ran FEA safety checks, compared magnesium and carbon fiber against aluminum, and prepared parts for prototyping and ISO 11199 testing.</li><li>Wrote design specifications, test plans, drawings and BOMs, and coordinated design transfer with manufacturing, quality and suppliers.</li></ul>
               <ul class="tags" aria-label="Skills"><li>SOLIDWORKS</li><li>FEA</li><li>DFM</li><li>GD&amp;T</li><li>Patent pending</li><li>Design transfer</li></ul>
             </div>
           </li>
