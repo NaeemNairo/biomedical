@@ -83,6 +83,7 @@ ul { margin: 0; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font: 600 1.02rem/1 var(--serif); }
 .brand:hover { color: var(--ink); }
 .brand-mark { width: 34px; height: 34px; border-radius: 9px; border: 2px solid var(--accent); display: grid; place-items: center; color: var(--accent); font: 700 .82rem/1 var(--serif); }
+.brand-logo { height: 44px; width: auto; display: block; flex: none; }
 .nav-links { display: flex; flex-wrap: wrap; gap: 2px; list-style: none; padding: 0; }
 .nav-links a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 999px; color: var(--text); text-decoration: none; font-size: .95rem; }
 .nav-links a:hover, .nav-links a[aria-current="page"] { color: var(--ink); background: var(--surface); }
