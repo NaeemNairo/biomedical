@@ -95,7 +95,7 @@ ul { margin: 0; }
 .id-name { font: 600 1.25rem/1.25 var(--serif); color: var(--ink); }
 .id-role { font-size: .92rem; color: var(--accent); margin-top: 2px; }
 .hero-copy { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
-.hero-proof { font-size: 1.08rem; max-width: 60ch; }
+.hero-proof { font-size: 1.08rem; max-width: none; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
 
 /* ---------- Number strip ---------- */
@@ -104,7 +104,7 @@ ul { margin: 0; }
 .stat:first-child { border-left: 0; }
 .stat-num { font: 600 clamp(1.9rem, 3.4vw, 2.5rem)/1 var(--serif); color: var(--ink); font-variant-numeric: tabular-nums; }
 .stat-num .unit { color: var(--accent); }
-.stat-label { font-size: .88rem; color: var(--muted); line-height: 1.4; }
+.stat-label { font-size: .88rem; color: var(--muted); line-height: 1.4; text-wrap: balance; }
 
 /* ---------- Pinned section bar ---------- */
 .section-bar { position: sticky; top: 0; z-index: 50; margin-top: clamp(40px, 6vw, 64px); background: rgba(14,16,17,.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-block: 1px solid var(--border); }
