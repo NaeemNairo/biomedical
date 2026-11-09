@@ -113,7 +113,7 @@
     });
   });
 
-  /* Print button on the résumé page */
+  /* Print button on the resume page */
   var printBtn = $("[data-print]");
   if (printBtn) printBtn.addEventListener("click", function () { window.print(); });
 })();

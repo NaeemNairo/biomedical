@@ -289,7 +289,7 @@ dialog.lightbox::backdrop { background: rgba(0,0,0,.78); }
   .hero-actions .btn { flex: 1 1 calc(50% - 10px); }
 }
 
-/* ---------- Print (Résumé page) ---------- */
+/* ---------- Print (Resume page) ---------- */
 @media print {
   :root { --bg: #fff; --surface: #fff; --surface-2: #fff; --ink: #000; --text: #111; --muted: #444; --border: #ccc; --accent: #0a5d68; }
   body { background: #fff; font-size: 10.5pt; }
