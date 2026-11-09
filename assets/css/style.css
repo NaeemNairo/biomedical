@@ -239,6 +239,7 @@ dialog.lightbox::backdrop { background: rgba(0,0,0,.78); }
 .figure-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 .figure-grid .figure { margin: 0; }
 .figure-grid .figure img { width: 100%; border-radius: 8px; }
+.gg-photos img { aspect-ratio: 4 / 3; object-fit: cover; object-position: center 35%; }
 @media (max-width: 700px) { .figure-grid { grid-template-columns: 1fr; } }
 .note { padding: 14px 16px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 10px 10px 0; font-size: .95rem; color: var(--ink); }
 .back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; text-decoration: none; font-weight: 500; }
