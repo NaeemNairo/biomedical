@@ -253,8 +253,6 @@ dialog.lightbox::backdrop { background: rgba(0,0,0,.78); }
 /* ---------- Footer ---------- */
 .site-footer { border-top: 1px solid var(--border); padding-block: 28px; margin-top: var(--space); font-size: .9rem; color: var(--muted); }
 .footer-inner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; align-items: center; }
-.contact-mark { display: flex; justify-content: center; margin-top: clamp(40px, 6vw, 64px); }
-.contact-mark img { height: 88px; width: auto; display: block; }
 .footer-links { display: flex; flex-wrap: wrap; gap: 4px 18px; list-style: none; padding: 0; }
 .footer-links a { color: var(--text); text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; }
 .footer-links a:hover { color: var(--accent); }
