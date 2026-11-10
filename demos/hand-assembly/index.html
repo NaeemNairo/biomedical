@@ -113,12 +113,12 @@ const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // ---------- timeline (seconds) ----------
 const PH = [
-  {id:"ex",   name:"Before assembly", sub:"Exploded view",               label:"Exploded",   dur:1.6},
-  {id:"asm",  name:"Assembling",      sub:"Fingers return, servos and pulleys last",       label:"Assembly",   dur:3.6},
-  {id:"done", name:"After assembly",  sub:"Complete hand",               label:"Assembled",  dur:1.2},
-  {id:"spin", name:"Turntable",       sub:"One turn around its center",  label:"360°",       dur:4.6},
-  {id:"rest", name:"After assembly",  sub:"Complete hand",               label:"Hold",       dur:1.4},
-  {id:"back", name:"Disassembling",   sub:"Fingers detach from the palm",   label:"Explode",    dur:2.2}];
+  {id:"ex",   name:"Before assembly", sub:"Exploded view",               label:"Exploded",   dur:1.28},
+  {id:"asm",  name:"Assembling",      sub:"Fingers return, servos and pulleys last",       label:"Assembly",   dur:2.88},
+  {id:"done", name:"After assembly",  sub:"Complete hand",               label:"Assembled",  dur:0.96},
+  {id:"spin", name:"Turntable",       sub:"One turn around its center",  label:"360°",       dur:3.68},
+  {id:"rest", name:"After assembly",  sub:"Complete hand",               label:"Hold",       dur:1.12},
+  {id:"back", name:"Disassembling",   sub:"Fingers detach from the palm",   label:"Explode",    dur:1.76}];
 let T0 = 0; PH.forEach(p => { p.t0 = T0; T0 += p.dur; p.t1 = T0; }); const TOTAL = T0;
 const ease = u => u < .5 ? 4*u*u*u : 1 - Math.pow(-2*u + 2, 3) / 2;           // cubic in-out
 const easeOutBack = u => { const c1 = 1.25, c3 = c1 + 1; return 1 + c3*Math.pow(u-1,3) + c1*Math.pow(u-1,2); };
@@ -130,7 +130,7 @@ const D2R = Math.PI/180, FINGERS = ["thumb","index","middle","ring","pinky"];
 let renderer, scene, camera, keyLight, rimLight, V3, rotAbout, planar;
 const parts = [];      // {mesh, rest, dir, dist, delay, spinAxis, spinAng}
 const linkGroups = {};
-let HM = null, ready = false, C = null, R = 1, EX = {c: null, ratio: 1}, camG = 0;
+let HM = null, ready = false, C = null, R = 1, EX = {c: null, ratio: 1}, camG = 0, UPRIGHT = null;
 const cr = (u,v) => u[0]*v[1]-u[1]*v[0], sub = (a,b) => [a[0]-b[0],a[1]-b[1]], dot = (a,b) => a[0]*b[0]+a[1]*b[1];
 const R2 = (v,a) => [v[0]*Math.cos(a)-v[1]*Math.sin(a), v[0]*Math.sin(a)+v[1]*Math.cos(a)];
 const add = (a,b) => [a[0]+b[0],a[1]+b[1]], ang2 = (a,b) => Math.atan2(cr(a,b),dot(a,b)), len = v => Math.hypot(v[0],v[1]);
@@ -220,6 +220,11 @@ async function load(){
     const unit = parts.filter(P => P.group === "finger:" + f), dir = mean(unit).sub(C).normalize();
     unit.forEach(P => { P.dir = dir; P.win = [.03 + .08*i, .62 + .08*i]; });
   });
+  // the hand's long axis (forearm → fingertips) is tilted in the CAD; rotate it onto the vertical so the hand stands straight
+  const tips = mean(parts.filter(P => P.group.startsWith("finger:") && P.group !== "finger:thumb")), fore2 = mean(parts.filter(P => P.link === "base" && P.group === "fixed"));
+  const axis = tips.sub(fore2).normalize(), Z = new THREE.Vector3(0,0,1), rotAx = new THREE.Vector3().crossVectors(axis, Z);
+  const ang = Math.acos(clamp(axis.dot(Z), -1, 1));
+  UPRIGHT = rotAx.length() > 1e-6 ? rotAbout(C, rotAx.normalize(), ang) : new THREE.Matrix4();
   R = Math.max(...parts.map(P => P.w.clone().sub(C).length()));
   parts.forEach(P => { if (P.dir) P.dist = R*.5; });
   // framing: how far the exploded parts reach from the palm compared with the assembled hand
@@ -233,7 +238,8 @@ async function load(){
 function poseParts(a, spin){
   const G = new THREE.Matrix4().makeTranslation(C.x, C.y, C.z)
     .multiply(new THREE.Matrix4().makeRotationZ(spin))
-    .multiply(new THREE.Matrix4().makeTranslation(-C.x, -C.y, -C.z));
+    .multiply(new THREE.Matrix4().makeTranslation(-C.x, -C.y, -C.z))
+    .multiply(UPRIGHT);                                               // spin about the hand's own vertical axis
   for (const P of parts) {
     const M = G.clone();
     if (P.dir) {                                                      // fingers slide in as whole units
@@ -249,7 +255,7 @@ function poseParts(a, spin){
 }
 
 // ---------- camera ----------
-let yaw = -Math.PI/2 - .45, pitch = .22, dist = 0, userYaw = 0, userPitch = 0;
+let yaw = -Math.PI/2 - .45, pitch = .12, dist = 0, userYaw = 0, userPitch = 0;
 function placeCam(t){
   const baseDist = R * 4.9;
   const p = clamp(pitch + userPitch, -1.2, 1.3), y = yaw + userYaw;
@@ -267,21 +273,21 @@ function phaseAt(tt){ return PH.find(p => tt < p.t1) || PH[PH.length-1]; }
 function frameState(tt){
   // returns {g (explosion 0..1 global), assembling, spin, dist, pitch}
   const P = phaseAt(tt), u = clamp((tt - P.t0) / P.dur);
-  let g = 0, assembling = true, spin = 0, dz = 1, pt = .22;
+  let g = 0, assembling = true, spin = 0, dz = 1, pt = .12;
   if (P.id === "ex")   { g = 1; dz = .9 - .03*u; }
   if (P.id === "asm")  { g = 1 - ease(u); dz = .9 - .02*ease(u); }
   if (P.id === "done") { g = 0; dz = .96; }
-  if (P.id === "spin") { const e = (1 - Math.cos(Math.PI*u)) / 2;                  // smooth start and stop
+  if (P.id === "spin") { const e = Math.pow(u, 2.4);                               // starts slow, ends fast
                          spin = e * Math.PI * 2;                                     // one full turn
                          dz = .96 - .08*Math.sin(Math.PI*u);                          // drift in at mid-turn
-                         pt = .22 + .16*Math.sin(Math.PI*2*u); }                     // gentle rise and fall
+                         pt = .12; }
   if (P.id === "rest") { g = 0; dz = .96; }
   if (P.id === "back") { g = ease(u); assembling = false; dz = .96 - .04*ease(u); }
   return {P, u, g, assembling, spin, dz, pt};
 }
 function apply(tt){
-  const S = hold === "ex" ? {P:PH[0], g:1, assembling:true, spin:0, dz:.9, pt:.22}
-          : hold === "as" ? {P:PH[2], g:0, assembling:true, spin:0, dz:.96, pt:.22} : frameState(tt);
+  const S = hold === "ex" ? {P:PH[0], g:1, assembling:true, spin:0, dz:.9, pt:.12}
+          : hold === "as" ? {P:PH[2], g:0, assembling:true, spin:0, dz:.96, pt:.12} : frameState(tt);
   poseParts(1 - S.g, S.spin);
   const zoom = S.dz * (1 + (EX.ratio - 1) * S.g * .9);          // zoom out to fit the exploded spread
   dist += (zoom - dist) * (dist ? .12 : 1); pitch += (S.pt - pitch) * .12; camG += (S.g - camG) * (camG ? .12 : 1);
