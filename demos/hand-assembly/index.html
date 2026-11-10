@@ -116,7 +116,7 @@ const PH = [
   {id:"ex",   name:"Before assembly", sub:"Exploded view",               label:"Exploded",   dur:1.28},
   {id:"asm",  name:"Assembling",      sub:"Fingers return, servos and pulleys last",       label:"Assembly",   dur:2.88},
   {id:"done", name:"After assembly",  sub:"Complete hand",               label:"Assembled",  dur:0.96},
-  {id:"spin", name:"Turntable",       sub:"One turn around its center",  label:"360°",       dur:3.68},
+  {id:"spin", name:"Turntable",       sub:"One turn around its center",  label:"360°",       dur:2.3},
   {id:"rest", name:"After assembly",  sub:"Complete hand",               label:"Hold",       dur:1.12},
   {id:"back", name:"Disassembling",   sub:"Fingers detach from the palm",   label:"Explode",    dur:1.76}];
 let T0 = 0; PH.forEach(p => { p.t0 = T0; T0 += p.dur; p.t1 = T0; }); const TOTAL = T0;
@@ -130,7 +130,7 @@ const D2R = Math.PI/180, FINGERS = ["thumb","index","middle","ring","pinky"];
 let renderer, scene, camera, keyLight, rimLight, V3, rotAbout, planar;
 const parts = [];      // {mesh, rest, dir, dist, delay, spinAxis, spinAng}
 const linkGroups = {};
-let HM = null, ready = false, C = null, R = 1, EX = {c: null, ratio: 1}, camG = 0, UPRIGHT = null;
+let HM = null, ready = false, C = null, R = 1, EX = {c: null, ratio: 1}, camG = 0, UPRIGHT = null, PIV = null;
 const cr = (u,v) => u[0]*v[1]-u[1]*v[0], sub = (a,b) => [a[0]-b[0],a[1]-b[1]], dot = (a,b) => a[0]*b[0]+a[1]*b[1];
 const R2 = (v,a) => [v[0]*Math.cos(a)-v[1]*Math.sin(a), v[0]*Math.sin(a)+v[1]*Math.cos(a)];
 const add = (a,b) => [a[0]+b[0],a[1]+b[1]], ang2 = (a,b) => Math.atan2(cr(a,b),dot(a,b)), len = v => Math.hypot(v[0],v[1]);
@@ -198,7 +198,7 @@ async function load(){
     // centroid of this part's vertices (model space)
     let cx=0, cy=0, cz=0, n = f32.length/3; for (let i=0;i<f32.length;i+=3){ cx+=f32[i]; cy+=f32[i+1]; cz+=f32[i+2]; }
     const group = mm.role === "motor" ? "servo" : FINGERS.includes(link.split(".")[0]) ? "finger:" + link.split(".")[0] : "fixed";
-    parts.push({mesh, link, role: mm.role, group, c: new THREE.Vector3(cx/n, cy/n, cz/n)});
+    parts.push({mesh, link, role: mm.role, group, verts: f32, c: new THREE.Vector3(cx/n, cy/n, cz/n)});
   }
   for (const f of FINGERS) {
     const F = HM.fingers[f], K = HM.k2[f];
@@ -220,11 +220,25 @@ async function load(){
     const unit = parts.filter(P => P.group === "finger:" + f), dir = mean(unit).sub(C).normalize();
     unit.forEach(P => { P.dir = dir; P.win = [.03 + .08*i, .62 + .08*i]; });
   });
-  // the hand's long axis (forearm → fingertips) is tilted in the CAD; rotate it onto the vertical so the hand stands straight
-  const tips = mean(parts.filter(P => P.group.startsWith("finger:") && P.group !== "finger:thumb")), fore2 = mean(parts.filter(P => P.link === "base" && P.group === "fixed"));
-  const axis = tips.sub(fore2).normalize(), Z = new THREE.Vector3(0,0,1), rotAx = new THREE.Vector3().crossVectors(axis, Z);
+  // the hand's long axis is tilted in the CAD. Fit it from every vertex of the assembled hand (principal axis),
+  // rotate it onto the vertical, and spin about a vertical line through the hand's own center, like a turntable.
+  const solid = parts.filter(P => P.group !== "servo");
+  const pts = [];
+  solid.forEach(P => { const a = P.verts, e = P.rest.elements;
+    for (let q = 0; q < a.length; q += 9) { const x = a[q], y = a[q+1], z = a[q+2];
+      pts.push([e[0]*x+e[4]*y+e[8]*z+e[12], e[1]*x+e[5]*y+e[9]*z+e[13], e[2]*x+e[6]*y+e[10]*z+e[14]]); } });
+  const mu = [0,1,2].map(k => pts.reduce((t,v) => t + v[k], 0) / pts.length);
+  const Cv = [[0,0,0],[0,0,0],[0,0,0]];
+  pts.forEach(v => { const d = [v[0]-mu[0], v[1]-mu[1], v[2]-mu[2]]; for (let r=0;r<3;r++) for (let c=0;c<3;c++) Cv[r][c] += d[r]*d[c]; });
+  let ev = [0,0,1]; for (let it = 0; it < 60; it++) { const n = [0,1,2].map(r => Cv[r][0]*ev[0] + Cv[r][1]*ev[1] + Cv[r][2]*ev[2]); const l = Math.hypot(...n); ev = n.map(x => x/l); }
+  const tipsM = mean(parts.filter(P => P.group.startsWith("finger:")));
+  if ((tipsM.x-mu[0])*ev[0] + (tipsM.y-mu[1])*ev[1] + (tipsM.z-mu[2])*ev[2] < 0) ev = ev.map(x => -x);   // point toward the fingers
+  const axis = new THREE.Vector3(ev[0], ev[1], ev[2]), Z = new THREE.Vector3(0,0,1), rotAx = new THREE.Vector3().crossVectors(axis, Z);
   const ang = Math.acos(clamp(axis.dot(Z), -1, 1));
   UPRIGHT = rotAx.length() > 1e-6 ? rotAbout(C, rotAx.normalize(), ang) : new THREE.Matrix4();
+  // turntable pivot: the hand's center line after standing it up (mean of all points), at palm height
+  const m2 = new THREE.Vector3(mu[0], mu[1], mu[2]).applyMatrix4(UPRIGHT);
+  PIV = new THREE.Vector3(m2.x, m2.y, C.z);
   R = Math.max(...parts.map(P => P.w.clone().sub(C).length()));
   parts.forEach(P => { if (P.dir) P.dist = R*.5; });
   // framing: how far the exploded parts reach from the palm compared with the assembled hand
@@ -236,9 +250,9 @@ async function load(){
 
 // a = assembly progress: 0 = exploded, 1 = assembled. Running it backwards disassembles in reverse order.
 function poseParts(a, spin){
-  const G = new THREE.Matrix4().makeTranslation(C.x, C.y, C.z)
+  const G = new THREE.Matrix4().makeTranslation(PIV.x, PIV.y, PIV.z)
     .multiply(new THREE.Matrix4().makeRotationZ(spin))
-    .multiply(new THREE.Matrix4().makeTranslation(-C.x, -C.y, -C.z))
+    .multiply(new THREE.Matrix4().makeTranslation(-PIV.x, -PIV.y, -PIV.z))
     .multiply(UPRIGHT);                                               // spin about the hand's own vertical axis
   for (const P of parts) {
     const M = G.clone();
@@ -260,7 +274,7 @@ function placeCam(t){
   const baseDist = R * 4.9;
   const p = clamp(pitch + userPitch, -1.2, 1.3), y = yaw + userYaw;
   const D = baseDist * dist * (camera.aspect < .9 ? 1.18 : 1);   // a little further back on tall, narrow screens
-  const L = C;                                                    // always look at the fixed palm
+  const L = PIV;                                                  // the turntable center, at palm height
   camera.position.set(L.x + D*Math.cos(p)*Math.cos(y), L.y + D*Math.cos(p)*Math.sin(y), L.z + D*Math.sin(p));
   camera.lookAt(L.x, L.y, L.z); window.target = L;
   keyLight.position.set(camera.position.x + R*2, camera.position.y - R, camera.position.z + R*3);
@@ -277,7 +291,7 @@ function frameState(tt){
   if (P.id === "ex")   { g = 1; dz = .9 - .03*u; }
   if (P.id === "asm")  { g = 1 - ease(u); dz = .9 - .02*ease(u); }
   if (P.id === "done") { g = 0; dz = .96; }
-  if (P.id === "spin") { const e = Math.pow(u, 2.4);                               // starts slow, ends fast
+  if (P.id === "spin") { const e = Math.pow(u, 1.8);                               // starts slow, ends fast
                          spin = e * Math.PI * 2;                                     // one full turn
                          dz = .96 - .08*Math.sin(Math.PI*u);                          // drift in at mid-turn
                          pt = .12; }
