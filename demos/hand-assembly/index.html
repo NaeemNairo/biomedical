@@ -114,15 +114,20 @@ const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 // ---------- timeline (seconds) ----------
 const PH = [
   {id:"ex",   name:"Before assembly", sub:"Exploded view",               label:"Exploded",   dur:1.28},
-  {id:"asm",  name:"Assembling",      sub:"Fingers return, servos and pulleys last",       label:"Assembly",   dur:2.88},
-  {id:"done", name:"After assembly",  sub:"Complete hand",               label:"Assembled",  dur:0.96},
-  {id:"spin", name:"Turntable",       sub:"One turn around its center",  label:"360°",       dur:2.3},
+  {id:"asm",  name:"Assembling",      sub:"Fingers return, servos and pulleys last",       label:"Assembly",   dur:3.0},
+  {id:"spin", name:"Turntable",       sub:"One turn around its center",  label:"360°",       dur:2.6},
   {id:"rest", name:"After assembly",  sub:"Complete hand",               label:"Hold",       dur:1.12},
   {id:"back", name:"Disassembling",   sub:"Fingers detach from the palm",   label:"Explode",    dur:1.76}];
 let T0 = 0; PH.forEach(p => { p.t0 = T0; T0 += p.dur; p.t1 = T0; }); const TOTAL = T0;
 const ease = u => u < .5 ? 4*u*u*u : 1 - Math.pow(-2*u + 2, 3) / 2;           // cubic in-out
 const easeOutBack = u => { const c1 = 1.25, c3 = c1 + 1; return 1 + c3*Math.pow(u-1,3) + c1*Math.pow(u-1,2); };
 const clamp = (x,a=0,b=1) => Math.max(a, Math.min(b, x));
+// turntable speed: quick first burst, a slow drift, then a much faster finish that brakes hard at 360°
+const SPIN = (() => { const N = 400, v = [], F = [0]; const bump = (u,c,w) => Math.exp(-(((u-c)/w)**2));
+  const ss = (a,b,x) => { const t = clamp((x-a)/(b-a)); return t*t*(3-2*t); };
+  for (let i = 0; i <= N; i++) { const u = i/N; v.push(ss(0,.06,u) * (1.1*bump(u,.18,.09) + .1 + 3.2*bump(u,.8,.09)) * (1 - ss(.93,1,u))); }
+  for (let i = 1; i <= N; i++) F.push(F[i-1] + (v[i-1]+v[i])/2);
+  const tot = F[N]; return u => { const x = clamp(u)*N, i = Math.min(N-1, Math.floor(x)); return (F[i] + (F[i+1]-F[i])*(x-i)) / tot; }; })();
 
 // ---------- 3D ----------
 const hand = document.getElementById("hand");
@@ -130,6 +135,8 @@ const D2R = Math.PI/180, FINGERS = ["thumb","index","middle","ring","pinky"];
 let renderer, scene, camera, keyLight, rimLight, V3, rotAbout, planar;
 const parts = [];      // {mesh, rest, dir, dist, delay, spinAxis, spinAng}
 const linkGroups = {};
+const fingerMat = {}, impactsAt = [{a: .84, dir: null, mat: null, str: .6}], hits = [];
+let clock = 0, prevA = null;
 let HM = null, ready = false, C = null, R = 1, EX = {c: null, ratio: 1}, camG = 0, UPRIGHT = null, PIV = null;
 const cr = (u,v) => u[0]*v[1]-u[1]*v[0], sub = (a,b) => [a[0]-b[0],a[1]-b[1]], dot = (a,b) => a[0]*b[0]+a[1]*b[1];
 const R2 = (v,a) => [v[0]*Math.cos(a)-v[1]*Math.sin(a), v[0]*Math.sin(a)+v[1]*Math.cos(a)];
@@ -218,7 +225,9 @@ async function load(){
   const ORDER = ["index","middle","ring","pinky","thumb"];
   ORDER.forEach((f, i) => {
     const unit = parts.filter(P => P.group === "finger:" + f), dir = mean(unit).sub(C).normalize();
-    unit.forEach(P => { P.dir = dir; P.win = [.03 + .08*i, .62 + .08*i]; });
+    const mat = std("#c9cfd8"); fingerMat[f] = mat;
+    unit.forEach(P => { P.dir = dir; P.win = [.02 + .075*i, .5 + .075*i]; P.mesh.material = mat; });
+    impactsAt.push({a: .5 + .075*i, dir, mat, str: 1});
   });
   // the hand's long axis is tilted in the CAD. Fit it from every vertex of the assembled hand (principal axis),
   // rotate it onto the vertical, and spin about a vertical line through the hand's own center, like a turntable.
@@ -248,20 +257,40 @@ async function load(){
   buildFacts(counts);
 }
 
+// impacts: a short recoil of the whole hand, a camera shake and a cyan flash on the part that hit
+function impactFx(){
+  const rec = new THREE.Vector3(), shake = new THREE.Vector3(); let any = false;
+  for (let i = hits.length-1; i >= 0; i--) { const H = hits[i], age = clock - H.t0;
+    if (age > .7) { if (H.mat) H.mat.emissiveIntensity = 0; hits.splice(i,1); continue; } any = true;
+    const spring = Math.exp(-age*9) * Math.sin(age*42);
+    if (H.dir) rec.addScaledVector(H.dir, -R * .03 * H.str * spring); else rec.z -= R * .02 * H.str * spring;
+    const sh = R * .012 * H.str * Math.exp(-age*13);
+    shake.x += sh*Math.sin(age*71 + H.ph); shake.y += sh*Math.sin(age*63 + H.ph*2); shake.z += sh*Math.sin(age*57 + H.ph*3);
+    if (H.mat) { H.mat.emissive.set("#4dd0e1"); H.mat.emissiveIntensity = .85 * Math.exp(-age*6); } }
+  return {rec, shake, any};
+}
+function hit(I){ hits.push({t0: clock, dir: I.dir, mat: I.mat, str: I.str, ph: Math.random()*6.28}); }
+let FX = {rec: null, shake: null};
 // a = assembly progress: 0 = exploded, 1 = assembled. Running it backwards disassembles in reverse order.
-function poseParts(a, spin){
-  const G = new THREE.Matrix4().makeTranslation(PIV.x, PIV.y, PIV.z)
+function poseParts(a, spin, assembling){
+  const rec = FX.rec || new THREE.Vector3();
+  const G = new THREE.Matrix4().makeTranslation(rec.x, rec.y, rec.z).multiply(new THREE.Matrix4().makeTranslation(PIV.x, PIV.y, PIV.z))
     .multiply(new THREE.Matrix4().makeRotationZ(spin))
     .multiply(new THREE.Matrix4().makeTranslation(-PIV.x, -PIV.y, -PIV.z))
     .multiply(UPRIGHT);                                               // spin about the hand's own vertical axis
   for (const P of parts) {
     const M = G.clone();
     if (P.dir) {                                                      // fingers slide in as whole units
-      const k = 1 - ease(clamp((a - P.win[0]) / (P.win[1] - P.win[0])));
+      const u = (a - P.win[0]) / (P.win[1] - P.win[0]);
+      let k;
+      if (assembling) {
+        if (u < 1) k = 1 - Math.pow(clamp(u), 2.6);                   // accelerates in and hits at full speed
+        else { const s = clamp((a - P.win[1]) / .07); k = .07 * Math.sin(Math.PI*s) * (1 - s); }   // small rebound after the hit
+      } else k = 1 - ease(clamp(u));
       const off = P.dir.clone().multiplyScalar(P.dist * k);
       M.multiply(new THREE.Matrix4().makeTranslation(off.x, off.y, off.z));
     } else if (P.group === "servo") {                                 // servos appear only at the very end
-      const u = clamp((a - .8) / .12), sc = u <= 0 ? .0001 : Math.max(.0001, easeOutBack(u));
+      const u = clamp((a - .72) / .12), sc = u <= 0 ? .0001 : Math.max(.0001, easeOutBack(u));
       M.multiply(new THREE.Matrix4().makeTranslation(P.w.x, P.w.y, P.w.z)).multiply(new THREE.Matrix4().makeScale(sc, sc, sc)).multiply(new THREE.Matrix4().makeTranslation(-P.w.x, -P.w.y, -P.w.z));
     }
     P.mesh.matrix.copy(M.multiply(P.rest));
@@ -276,12 +305,14 @@ function placeCam(t){
   const D = baseDist * dist * (camera.aspect < .9 ? 1.18 : 1);   // a little further back on tall, narrow screens
   const L = PIV;                                                  // the turntable center, at palm height
   camera.position.set(L.x + D*Math.cos(p)*Math.cos(y), L.y + D*Math.cos(p)*Math.sin(y), L.z + D*Math.sin(p));
+  if (FX.shake) camera.position.add(FX.shake);
   camera.lookAt(L.x, L.y, L.z); window.target = L;
   keyLight.position.set(camera.position.x + R*2, camera.position.y - R, camera.position.z + R*3);
   rimLight.position.set(C.x - (camera.position.x - C.x), C.y - (camera.position.y - C.y), C.z + R*2);
 }
 
 // ---------- animation state ----------
+let prevSpin = 0;
 let t = 0, playing = !reduce, last = performance.now(), hold = null;
 function phaseAt(tt){ return PH.find(p => tt < p.t1) || PH[PH.length-1]; }
 function frameState(tt){
@@ -289,9 +320,8 @@ function frameState(tt){
   const P = phaseAt(tt), u = clamp((tt - P.t0) / P.dur);
   let g = 0, assembling = true, spin = 0, dz = 1, pt = .12;
   if (P.id === "ex")   { g = 1; dz = .9 - .03*u; }
-  if (P.id === "asm")  { g = 1 - ease(u); dz = .9 - .02*ease(u); }
-  if (P.id === "done") { g = 0; dz = .96; }
-  if (P.id === "spin") { const e = Math.pow(u, 1.8);                               // starts slow, ends fast
+  if (P.id === "asm")  { g = 1 - u; dz = .9 - .02*ease(u); }
+    if (P.id === "spin") { const e = SPIN(u);                                         // fast, slow, then super fast
                          spin = e * Math.PI * 2;                                     // one full turn
                          dz = .96 - .08*Math.sin(Math.PI*u);                          // drift in at mid-turn
                          pt = .12; }
@@ -301,8 +331,14 @@ function frameState(tt){
 }
 function apply(tt){
   const S = hold === "ex" ? {P:PH[0], g:1, assembling:true, spin:0, dz:.9, pt:.12}
-          : hold === "as" ? {P:PH[2], g:0, assembling:true, spin:0, dz:.96, pt:.12} : frameState(tt);
-  poseParts(1 - S.g, S.spin);
+          : hold === "as" ? {P:{id:"done", name:"After assembly", sub:"Complete hand"}, g:0, assembling:true, spin:0, dz:.96, pt:.12} : frameState(tt);
+  const a = 1 - S.g;
+  if (prevA !== null && S.assembling && !hold && playing && a > prevA && a - prevA < .2)
+    impactsAt.forEach(I => { if (prevA < I.a && a >= I.a) hit(I); });
+  if (prevA !== null && S.P.id === "spin" && !hold && playing && prevSpin < Math.PI*2 - .01 && S.spin >= Math.PI*2 - .01) hit({dir: null, mat: null, str: .45});
+  prevA = a; prevSpin = S.P.id === "spin" ? S.spin : 0;
+  FX = impactFx();
+  poseParts(a, S.spin, S.assembling);
   const zoom = S.dz * (1 + (EX.ratio - 1) * S.g * .9);          // zoom out to fit the exploded spread
   dist += (zoom - dist) * (dist ? .12 : 1); pitch += (S.pt - pitch) * .12; camG += (S.g - camG) * (camG ? .12 : 1);
   return S;
@@ -357,6 +393,7 @@ function buildFacts(c){
 function frame(now){
   const dt = Math.min(.05, Math.max(0, (now - last)/1000)); last = now;
   if (ready) {
+    clock += dt;
     if (playing && !hold && !scrub) { t += dt; if (t >= TOTAL) t -= TOTAL; }
     if (!dragging) { userYaw *= .96; userPitch *= .94; }
     const S = apply(t);
