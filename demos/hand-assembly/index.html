@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="author" content="Naeem Nairo">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<style>html,body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>NeuroGrip Assembly</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one large 3D stage (exploded → assembled → two turns), a phase timeline under it, then the parts breakdown. Same "lab scope" look as the other NeuroGrip pages. */
+:root {
+  --bg: #0a0c11;
+  --panel: #10131a;
+  --line: #1f2430;
+  --ink: #e4e8f0;
+  --muted: #7c8496;
+  --accent: #4dd0e1;
+  --pulley: #3b78e7;
+  --servo: #d98a2b;
+  --wrist: #2e9b74;
+  --pcb: #2c5ea8;
+  --font-display: "Chakra Petch", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); color: var(--ink); }
+body { font-family: var(--font-body); font-size: 14px; }
+.wrap { max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px;
+  padding-block: 18px 22px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(22px, 3vw, 30px); letter-spacing: .02em; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 4px 0 0; max-width: 70ch; line-height: 1.5; }
+.stage { position: relative; height: clamp(420px, 70vh, 720px); border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+  background: radial-gradient(ellipse 60% 55% at 50% 52%, #1a2230 0%, #10131a 55%, #0a0c11 100%); }
+#hand { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#hand:active { cursor: grabbing; }
+.hud { position: absolute; left: 14px; top: 12px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.phase { font: 700 clamp(18px, 2.4vw, 26px)/1 var(--font-display); letter-spacing: .04em; text-transform: uppercase; }
+.phase-sub { font: 400 12px var(--font-mono); color: var(--muted); }
+.cap { position: absolute; right: 14px; top: 14px; font: 400 11px var(--font-mono); color: var(--muted); pointer-events: none; text-align: right; }
+.legend { position: absolute; right: 14px; bottom: 12px; display: flex; flex-direction: column; gap: 3px; font: 400 10px var(--font-mono); color: var(--muted); pointer-events: none; }
+.legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 6px; vertical-align: -1px; background: var(--c); border-radius: 2px; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font: 400 12px var(--font-mono); pointer-events: none; text-align: center; padding: 16px; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+button { font: 600 12.5px var(--font-display); letter-spacing: .04em; color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 4px; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
+button:hover { border-color: var(--muted); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--panel)); }
+.track { position: relative; flex: 1 1 320px; display: flex; height: 30px; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; cursor: pointer; background: var(--panel); }
+.seg { position: relative; height: 100%; display: flex; align-items: center; justify-content: center; font: 500 10.5px var(--font-mono); color: var(--muted);
+  border-right: 1px solid var(--bg); white-space: nowrap; overflow: hidden; min-width: 0; }
+.seg:last-child { border-right: 0; }
+.seg i { position: absolute; inset: 0 auto 0 0; width: 0; background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.seg b { position: relative; font-weight: 500; }
+.seg.cur { color: var(--ink); }
+.facts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.fact { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fact b { font: 700 24px/1 var(--font-display); }
+.fact span { font: 400 11px var(--font-mono); color: var(--muted); line-height: 1.45; }
+.fact.nocolor b::before { display: none; }
+.fact b::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; vertical-align: 3px; background: var(--c, transparent); }
+body.embed header, body.embed #backlink { display: none; }
+body.embed .wrap { padding-block: 4px 8px; }
+body.embed .stage { height: clamp(360px, 52vw, 600px); }
+@media (max-width: 760px) {
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stage { height: clamp(360px, 62vh, 520px); }
+  .legend, .cap { display: none; }
+  .seg b { font-size: 9.5px; }
+}
+@media (prefers-reduced-motion: reduce) { .seg i { transition: none; } }
+</style>
+</head>
+<body>
+<a id="backlink" href="../../projects/emg-robotic-hand.html" style="position:fixed;z-index:20;left:max(12px,env(safe-area-inset-left,0px));bottom:12px;font:500 12px 'IBM Plex Mono',ui-monospace,monospace;color:#9aa3b2;background:rgba(10,12,17,.85);border:1px solid #2a3140;border-radius:4px;padding:6px 10px;text-decoration:none">← Project page</a>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>NeuroGrip · Assembly</h1>
+      <p class="sub">Every part of the robotic hand from its CAD assembly: the hand starts fully exploded, comes together part by part, then turns twice around its center so you can see it from every side.</p>
+    </div>
+  </header>
+
+  <section class="stage" aria-label="3D model of the robotic hand assembling and rotating">
+    <canvas id="hand" aria-label="3D model of the NeuroGrip robotic hand; drag to look around"></canvas>
+    <div class="hud"><div class="phase" id="phase">Before assembly</div><div class="phase-sub" id="phaseSub">Exploded view</div></div>
+    <div class="cap">CAD assembly · drag to look around</div>
+    <div class="legend"><span style="--c:#c9cfd8">printed parts</span><span style="--c:var(--pulley)">bend pulleys</span><span style="--c:var(--servo)">side servos</span><span style="--c:var(--wrist)">wrist servo</span><span style="--c:var(--pcb)">electronics</span><span style="--c:#4a515c">fasteners</span></div>
+    <div class="loading" id="loading">Loading 3D model…</div>
+  </section>
+
+  <div class="controls">
+    <button id="play" aria-label="Pause">Pause</button>
+    <button id="replay">Replay</button>
+    <button id="showEx">Exploded</button>
+    <button id="showAs">Assembled</button>
+    <div class="track" id="track" role="slider" tabindex="0" aria-label="Animation timeline" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+  </div>
+
+  <section class="facts" id="facts" aria-label="Parts in the assembly"></section>
+</div>
+
+<script>if (location.hash === "#embed") document.body.classList.add("embed");</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const PULLEY = css("--pulley"), SERVO = css("--servo"), WRIST = css("--wrist"), PANEL = css("--panel");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ---------- timeline (seconds) ----------
+const PH = [
+  {id:"ex",   name:"Before assembly", sub:"Exploded view",               label:"Exploded",   dur:1.6},
+  {id:"asm",  name:"Assembling",      sub:"Parts move into place",       label:"Assembly",   dur:3.6},
+  {id:"done", name:"After assembly",  sub:"Complete hand",               label:"Assembled",  dur:1.2},
+  {id:"spin", name:"Turntable",       sub:"Two turns around its center", label:"2 × 360°",   dur:7.0},
+  {id:"rest", name:"After assembly",  sub:"Complete hand",               label:"Hold",       dur:1.4},
+  {id:"back", name:"Disassembling",   sub:"Back to the exploded view",   label:"Explode",    dur:2.2}];
+let T0 = 0; PH.forEach(p => { p.t0 = T0; T0 += p.dur; p.t1 = T0; }); const TOTAL = T0;
+const ease = u => u < .5 ? 4*u*u*u : 1 - Math.pow(-2*u + 2, 3) / 2;           // cubic in-out
+const easeOutBack = u => { const c1 = 1.25, c3 = c1 + 1; return 1 + c3*Math.pow(u-1,3) + c1*Math.pow(u-1,2); };
+const clamp = (x,a=0,b=1) => Math.max(a, Math.min(b, x));
+
+// ---------- 3D ----------
+const hand = document.getElementById("hand");
+const D2R = Math.PI/180, FINGERS = ["thumb","index","middle","ring","pinky"];
+let renderer, scene, camera, keyLight, rimLight, V3, rotAbout, planar;
+const parts = [];      // {mesh, rest, dir, dist, delay, spinAxis, spinAng}
+const linkGroups = {};
+let HM = null, ready = false, C = null, R = 1, EX = {c: null, ratio: 1}, camG = 0;
+const cr = (u,v) => u[0]*v[1]-u[1]*v[0], sub = (a,b) => [a[0]-b[0],a[1]-b[1]], dot = (a,b) => a[0]*b[0]+a[1]*b[1];
+const R2 = (v,a) => [v[0]*Math.cos(a)-v[1]*Math.sin(a), v[0]*Math.sin(a)+v[1]*Math.cos(a)];
+const add = (a,b) => [a[0]+b[0],a[1]+b[1]], ang2 = (a,b) => Math.atan2(cr(a,b),dot(a,b)), len = v => Math.hypot(v[0],v[1]);
+function circ(c1,r1,c2,r2,pick){ const d = len(sub(c2,c1)), a = (r1*r1-r2*r2+d*d)/(2*d), h = Math.sqrt(Math.max(r1*r1-a*a,0));
+  const u = [(c2[0]-c1[0])/d,(c2[1]-c1[1])/d], n = [-u[1],u[0]], p1 = [c1[0]+u[0]*a+n[0]*h, c1[1]+u[1]*a+n[1]*h], p2 = [c1[0]+u[0]*a-n[0]*h, c1[1]+u[1]*a-n[1]*h];
+  return Math.sign(cr(sub(c2,c1),sub(p1,c1))) === pick ? p1 : p2; }
+function solveF(F,th){ const {H,M:MC,E,A,B,C:Cc,D} = F._2, K = F._K;
+  const Cq = add(H,R2(sub(Cc,H),th)), Aq = add(H,R2(sub(A,H),th)), Eq = circ(MC,len(sub(E,MC)),Cq,len(sub(E,Cc)),K.pE);
+  const m = ang2(sub(E,MC),sub(Eq,MC)), cpl = ang2(sub(E,Cc),sub(Eq,Cq)), Dq = add(Cq,R2(sub(D,Cc),cpl));
+  const Bq = circ(Dq,len(sub(B,D)),Aq,len(sub(B,A)),K.pB); return {m,cpl,dist:ang2(sub(B,D),sub(Bq,Dq)),Cq,Dq,Aq,Bq}; }
+function solveT(F,th){ const {H,M:MC,E,G} = F._2, K = F._K, Gq = add(H,R2(sub(G,H),th)), Eq = circ(MC,len(sub(E,MC)),Gq,len(sub(E,G)),K.pE);
+  return {m: ang2(sub(E,MC),sub(Eq,MC)), t: ang2(sub(G,E),sub(Gq,Eq)), Eq}; }
+const motorMove = id => { const n = +id.slice(1); return n <= 5 ? n-1 : n <= 10 ? n-1 : 10; };
+
+function init(){
+  V3 = a => new THREE.Vector3(a[0], a[1], a[2]);
+  rotAbout = (p, d, ang) => { const m = new THREE.Matrix4().makeTranslation(p.x,p.y,p.z); m.multiply(new THREE.Matrix4().makeRotationAxis(d, ang)); m.multiply(new THREE.Matrix4().makeTranslation(-p.x,-p.y,-p.z)); return m; };
+  planar = (F,c3,c2,th) => { const [e1,e2] = F._e, c = F._to2(c3), d = sub(c2,c);
+    return new THREE.Matrix4().makeTranslation(e1.x*d[0]+e2.x*d[1], e1.y*d[0]+e2.y*d[1], e1.z*d[0]+e2.z*d[1]).multiply(rotAbout(c3,F._k,th)); };
+  renderer = new THREE.WebGLRenderer({canvas: hand, antialias: true, alpha: true}); renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(30, 1, 1, 8000); camera.up.set(0,0,1);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x2a2f38, .8));
+  keyLight = new THREE.DirectionalLight(0xffffff, .8); scene.add(keyLight);
+  rimLight = new THREE.DirectionalLight(0x9fe8f2, .45); scene.add(rimLight);
+}
+const std = (c, o={}) => new THREE.MeshStandardMaterial(Object.assign({color: c, roughness: .55, metalness: .08}, o));
+
+// rest pose = the open hand, fingers straight, from the same linkage solver as the other demos
+function restMatrices(){
+  const M = {}, I = () => new THREE.Matrix4();
+  M.base = I(); M.palm = I();
+  FINGERS.forEach(f => {
+    const F = HM.fingers[f], K = F._K, S = F._3, k = F._k, crank = K.th_open*D2R;
+    M["pulley."+f] = I(); M[f+".abd"] = I();
+    if (f === "thumb") { const J = solveT(F, crank); M["thumb.prox"] = rotAbout(S.M,k,J.m); M["thumb.rod"] = rotAbout(S.H,k,crank); M["thumb.dist"] = planar(F,S.E,J.Eq,J.t); return; }
+    const J = solveF(F, crank);
+    M[f+".prox"] = rotAbout(S.M,k,J.m); M[f+".rod"] = rotAbout(S.H,k,crank);
+    M[f+".coupler"] = planar(F,S.C,J.Cq,J.cpl); M[f+".dist"] = planar(F,S.D,J.Dq,J.dist);
+    M[f+".link5"] = planar(F,S.A,J.Aq,ang2(sub(F._2.B,F._2.A),sub(J.Bq,J.Aq)));
+  });
+  return M;
+}
+
+async function load(){
+  if (typeof THREE === "undefined") throw new Error("3D library did not load");
+  init();
+  const MAT = {part: std("#c9cfd8"), hw: std("#4a515c", {metalness: .5, roughness: .35}), pcb: std(css("--pcb")), body: std("#3a4049")};
+  HM = await (await fetch("../hand-model/hand.json")).json();
+  const bin = await (await fetch("../hand-model/hand.bin")).arrayBuffer();
+  const counts = {part:0, motor:0, hw:0, pcb:0};
+  for (const mm of HM.meshes) {
+    const pa = new Int16Array(bin, mm.pos[0], mm.pos[1]), idx = new Uint16Array(bin, mm.idx[0], mm.idx[1]), f32 = new Float32Array(pa.length);
+    for (let i=0;i<pa.length;i++) f32[i] = pa[i]*HM.scale;
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(f32,3)); g.setIndex(new THREE.BufferAttribute(idx,1)); g.computeVertexNormals();
+    let mat = mm.role === "hw" ? MAT.hw : mm.role === "pcb" ? MAT.pcb : MAT.part, link = mm.link;
+    if (mm.role === "motor") {
+      const mi = motorMove(mm.motor), fi = mi < 5 ? mi : -1, servoBody = fi >= 0 && mm.name === "FS5115M";
+      if (fi >= 0 && !servoBody) link = "pulley." + FINGERS[fi];
+      mat = servoBody ? MAT.body : std(mi < 5 ? PULLEY : mi < 10 ? SERVO : WRIST);
+    }
+    counts[mm.role] = (counts[mm.role] || 0) + 1;
+    const mesh = new THREE.Mesh(g, mat); mesh.matrixAutoUpdate = false; scene.add(mesh);
+    // centroid of this part's vertices (model space)
+    let cx=0, cy=0, cz=0, n = f32.length/3; for (let i=0;i<f32.length;i+=3){ cx+=f32[i]; cy+=f32[i+1]; cz+=f32[i+2]; }
+    parts.push({mesh, link, role: mm.role, c: new THREE.Vector3(cx/n, cy/n, cz/n)});
+  }
+  for (const f of FINGERS) {
+    const F = HM.fingers[f], K = HM.k2[f];
+    const k = V3(F.mcp[1]).normalize();
+    const e1 = new THREE.Vector3(0,1,0); e1.addScaledVector(k, -e1.dot(k)).normalize(); const e2 = new THREE.Vector3().crossVectors(k, e1);
+    F._k = k; F._e = [e1,e2]; F._K = K; F._to2 = p => [p.dot(e1), p.dot(e2)];
+    F._3 = {E:V3(K.E), H:V3(K.H), M:V3(F.mcp[0])};
+    if (f === "thumb") F._3.G = V3(K.G); else Object.assign(F._3, {A:V3(F.A), B:V3(F.B), C:V3(F.C), D:V3(F.D)});
+    F._2 = Object.fromEntries(Object.entries(F._3).map(([n,v]) => [n, F._to2(v)]));
+  }
+  const REST = restMatrices();
+  // assembled positions and model center
+  const bb = new THREE.Box3(); scene.children.forEach(o => o.isMesh && bb.expandByObject(o));
+  C = new THREE.Vector3(); bb.getCenter(C);
+  for (const P of parts) { P.rest = (REST[P.link] || new THREE.Matrix4()).clone(); P.w = P.c.clone().applyMatrix4(P.rest); }
+  R = Math.max(...parts.map(P => P.w.clone().sub(C).length()));
+  // explosion: each part flies out along its direction from the center (fingers mostly upward, base parts downward and outward)
+  let maxD = 0;
+  parts.forEach((P, i) => {
+    const d = P.w.clone().sub(C); const r = d.length() / R;
+    const up = P.link === "base" ? -.35 : P.link.includes(".") ? .9 : .25;
+    const dir = new THREE.Vector3(d.x, d.y, d.z*.6 + up*R*.5).normalize();
+    const kind = P.role === "hw" ? 1.35 : P.role === "pcb" ? 1.15 : P.role === "motor" ? 1.05 : 1;
+    P.dist = R * (.38 + .55*r) * kind;
+    P.dir = dir;
+    const h = Math.sin(i*12.9898)*43758.5453; const rnd = h - Math.floor(h);
+    P.spinAxis = new THREE.Vector3(Math.sin(i*1.7), Math.cos(i*2.3), Math.sin(i*.9+1)).normalize();
+    P.spinAng = (.35 + .5*rnd) * (i % 2 ? 1 : -1);
+    P.order = r + (P.role === "hw" ? .35 : 0) + rnd*.15;      // inner parts arrive first, fasteners last
+    maxD = Math.max(maxD, P.order);
+  });
+  parts.forEach(P => P.delay = P.order / maxD);
+  // framing: how much bigger the exploded spread is than the assembled hand, and where its center sits
+  const ext = pts => { const lo = [1e9,1e9,1e9], hi = [-1e9,-1e9,-1e9]; pts.forEach(v => { [v.x,v.y,v.z].forEach((x,i) => { lo[i] = Math.min(lo[i],x); hi[i] = Math.max(hi[i],x); }); });
+    return {c: new THREE.Vector3((lo[0]+hi[0])/2,(lo[1]+hi[1])/2,(lo[2]+hi[2])/2), s: Math.max(hi[2]-lo[2], Math.hypot(hi[0]-lo[0], hi[1]-lo[1])*.75)}; };
+  const A = ext(parts.map(P => P.w)), E = ext(parts.map(P => P.w.clone().add(P.dir.clone().multiplyScalar(P.dist))));
+  EX = {c: E.c, ratio: E.s / A.s};
+  ready = true; document.getElementById("loading").hidden = true;
+  buildFacts(counts);
+}
+
+// k: 0 = assembled, 1 = fully exploded (per part, after stagger)
+const _T = () => new THREE.Matrix4();
+function poseParts(k, spin){
+  const G = new THREE.Matrix4().makeTranslation(C.x, C.y, C.z)
+    .multiply(new THREE.Matrix4().makeRotationZ(spin))
+    .multiply(new THREE.Matrix4().makeTranslation(-C.x, -C.y, -C.z));
+  for (const P of parts) {
+    const kp = clamp(P.kp(k));
+    const off = P.dir.clone().multiplyScalar(P.dist * kp);
+    const twist = rotAbout(P.w, P.spinAxis, P.spinAng * kp);
+    P.mesh.matrix.copy(G).multiply(new THREE.Matrix4().makeTranslation(off.x, off.y, off.z)).multiply(twist).multiply(P.rest);
+  }
+}
+// staggered amount of explosion for a part given the global amount
+function stagger(P, g, assembling){
+  const span = .45, d = assembling ? P.delay : 1 - P.delay;
+  return clamp((g - d*(1-span)) / span);
+}
+
+// ---------- camera ----------
+let yaw = -Math.PI/2 - .45, pitch = .22, dist = 0, userYaw = 0, userPitch = 0;
+function placeCam(t){
+  const baseDist = R * 4.6;
+  const p = clamp(pitch + userPitch, -1.2, 1.3), y = yaw + userYaw;
+  const D = baseDist * dist * (camera.aspect < .9 ? 1.18 : 1);   // a little further back on tall, narrow screens
+  const L = C.clone().add(EX.c.clone().sub(C).multiplyScalar(camG));   // look at the exploded spread's center when apart
+  camera.position.set(L.x + D*Math.cos(p)*Math.cos(y), L.y + D*Math.cos(p)*Math.sin(y), L.z + D*Math.sin(p));
+  camera.lookAt(L.x, L.y, L.z); window.target = L;
+  keyLight.position.set(camera.position.x + R*2, camera.position.y - R, camera.position.z + R*3);
+  rimLight.position.set(C.x - (camera.position.x - C.x), C.y - (camera.position.y - C.y), C.z + R*2);
+}
+
+// ---------- animation state ----------
+let t = 0, playing = !reduce, last = performance.now(), hold = null;
+function phaseAt(tt){ return PH.find(p => tt < p.t1) || PH[PH.length-1]; }
+function frameState(tt){
+  // returns {g (explosion 0..1 global), assembling, spin, dist, pitch}
+  const P = phaseAt(tt), u = clamp((tt - P.t0) / P.dur);
+  let g = 0, assembling = true, spin = 0, dz = 1, pt = .22;
+  if (P.id === "ex")   { g = 1; dz = .9 - .03*u; }
+  if (P.id === "asm")  { g = 1 - ease(u); dz = .9 - .02*ease(u); }
+  if (P.id === "done") { g = 0; dz = .96; }
+  if (P.id === "spin") { const e = (1 - Math.cos(Math.PI*u)) / 2;                  // smooth start and stop
+                         spin = e * Math.PI * 4;                                     // two full turns
+                         dz = .96 - .08*Math.sin(Math.PI*u);                          // drift in at mid-turn
+                         pt = .22 + .16*Math.sin(Math.PI*2*u); }                     // gentle rise and fall
+  if (P.id === "rest") { g = 0; dz = .96; }
+  if (P.id === "back") { g = ease(u); assembling = false; dz = .96 - .04*ease(u); }
+  return {P, u, g, assembling, spin, dz, pt};
+}
+function apply(tt){
+  const S = hold === "ex" ? {P:PH[0], g:1, assembling:true, spin:0, dz:.9, pt:.22}
+          : hold === "as" ? {P:PH[2], g:0, assembling:true, spin:0, dz:.96, pt:.22} : frameState(tt);
+  parts.forEach(P => P.kp = g => stagger(P, g, S.assembling));
+  poseParts(S.g, S.spin);
+  const zoom = S.dz * (1 + (EX.ratio - 1) * S.g * .8);          // zoom out to fit the exploded spread
+  dist += (zoom - dist) * (dist ? .12 : 1); pitch += (S.pt - pitch) * .12; camG += (S.g - camG) * (camG ? .12 : 1);
+  return S;
+}
+
+// ---------- UI ----------
+const track = document.getElementById("track"), segEls = [];
+PH.forEach(p => { const el = document.createElement("div"); el.className = "seg"; el.style.flex = `${p.dur} 0 0`;
+  el.innerHTML = `<i></i><b>${p.label}</b>`; track.appendChild(el); segEls.push(el); });
+function fitLabels(){ segEls.forEach(el => { const b = el.querySelector("b"); b.hidden = false; if (b.scrollWidth > el.clientWidth - 6) b.hidden = true; }); }
+fitLabels(); new ResizeObserver(fitLabels).observe(track);
+function updateTrack(){
+  PH.forEach((p,i) => { const f = clamp((t - p.t0)/p.dur); segEls[i].querySelector("i").style.width = (f*100)+"%"; segEls[i].classList.toggle("cur", t >= p.t0 && t < p.t1 && !hold); });
+  track.setAttribute("aria-valuenow", Math.round(t/TOTAL*100));
+}
+let scrub = false;
+const seek = x => { const r = track.getBoundingClientRect(); t = clamp((x - r.left)/r.width) * TOTAL * .9999; hold = null; syncBtns(); };
+track.addEventListener("pointerdown", e => { scrub = true; track.setPointerCapture(e.pointerId); seek(e.clientX); });
+track.addEventListener("pointermove", e => { if (scrub) seek(e.clientX); });
+track.addEventListener("pointerup", () => scrub = false); track.addEventListener("pointercancel", () => scrub = false);
+track.addEventListener("keydown", e => { const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0; if (d) { e.preventDefault(); t = clamp(t + d*.5, 0, TOTAL-.001); hold = null; syncBtns(); } });
+const playBtn = document.getElementById("play"), exBtn = document.getElementById("showEx"), asBtn = document.getElementById("showAs");
+function syncBtns(){ playBtn.textContent = playing && !hold ? "Pause" : "Play"; playBtn.setAttribute("aria-label", playBtn.textContent);
+  exBtn.classList.toggle("on", hold === "ex"); asBtn.classList.toggle("on", hold === "as"); }
+playBtn.addEventListener("click", () => { if (hold) { hold = null; playing = true; } else playing = !playing; syncBtns(); });
+document.getElementById("replay").addEventListener("click", () => { t = 0; hold = null; playing = true; userYaw = 0; userPitch = 0; syncBtns(); });
+exBtn.addEventListener("click", () => { hold = hold === "ex" ? null : "ex"; syncBtns(); });
+asBtn.addEventListener("click", () => { hold = hold === "as" ? null : "as"; syncBtns(); });
+// drag to look around (adds to the animated view; eases back when released)
+const ptrs = new Map(); let dragging = false;
+hand.addEventListener("pointerdown", e => { hand.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); dragging = true; });
+hand.addEventListener("pointermove", e => { if (!ptrs.has(e.pointerId)) return; const p = ptrs.get(e.pointerId);
+  userYaw -= (e.clientX - p[0]) * .008; userPitch += (e.clientY - p[1]) * .006; ptrs.set(e.pointerId, [e.clientX, e.clientY]); });
+const up = e => { ptrs.delete(e.pointerId); dragging = ptrs.size > 0; }; hand.addEventListener("pointerup", up); hand.addEventListener("pointercancel", up);
+
+let shownPhase = "";
+function updateHud(S){
+  const name = hold === "ex" ? "Before assembly" : hold === "as" ? "After assembly" : S.P.name;
+  const subt = hold === "ex" ? "Exploded view" : hold === "as" ? "Complete hand" :
+    S.P.id === "spin" ? `Turn ${Math.min(2, Math.floor(S.spin/(Math.PI*2)) + 1)} of 2 · ${Math.round((S.spin*180/Math.PI) % 360)}°` : S.P.sub;
+  if (name !== shownPhase) { document.getElementById("phase").textContent = name; shownPhase = name; }
+  document.getElementById("phaseSub").textContent = subt;
+}
+function buildFacts(c){
+  const total = parts.length;
+  const items = [[total, "parts in the CAD assembly", ""], [c.part, "3D-printed structural parts", "#c9cfd8"], [c.motor, "motor and servo parts (11 actuators)", "var(--servo)"],
+                 [c.pcb, "electronics parts", "var(--pcb)"], [c.hw, "fasteners", "#4a515c"]];
+  document.getElementById("facts").innerHTML = items.map(([n, l, col]) => `<div class="fact${col ? "" : " nocolor"}" style="--c:${col || "transparent"}"><b>${n}</b><span>${l}</span></div>`).join("");
+}
+
+// ---------- loop ----------
+function frame(now){
+  const dt = Math.min(.05, Math.max(0, (now - last)/1000)); last = now;
+  if (ready) {
+    if (playing && !hold && !scrub) { t += dt; if (t >= TOTAL) t -= TOTAL; }
+    if (!dragging) { userYaw *= .96; userPitch *= .94; }
+    const S = apply(t);
+    const w = hand.clientWidth, h = hand.clientHeight;
+    if (renderer.domElement.width !== Math.round(w*renderer.getPixelRatio())) { renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix(); }
+    placeCam(t); renderer.render(scene, camera); updateHud(S); updateTrack();
+  }
+  requestAnimationFrame(frame);
+}
+syncBtns();
+if (reduce) { hold = "as"; syncBtns(); }
+load().catch(err => { document.getElementById("loading").textContent = "Could not load the 3D model: " + err.message; });
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
