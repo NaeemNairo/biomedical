@@ -230,6 +230,11 @@ dialog.lightbox::backdrop { background: rgba(0,0,0,.78); }
 .detail-main h2 { font-size: 1.45rem; margin-bottom: 10px; }
 .detail-main p + p { margin-top: 12px; }
 .detail-main ul { padding-left: 1.1rem; display: flex; flex-direction: column; gap: 6px; }
+.hw-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .9fr); gap: 24px; align-items: start; }
+.hw-anim { margin: 0; padding: 0; overflow: hidden; }
+.hw-anim iframe { display: block; width: 100%; aspect-ratio: 3 / 4; max-height: 520px; border: 0; background: #0a0c11; }
+.hw-anim figcaption { font-size: .85rem; color: var(--muted); padding: 10px 14px 12px; }
+@media (max-width: 700px) { .hw-split { grid-template-columns: 1fr; } }
 .detail-aside { padding: 22px; position: sticky; top: 88px; display: flex; flex-direction: column; gap: 16px; }
 .detail-aside dl { margin: 0; display: flex; flex-direction: column; gap: 12px; }
 .detail-aside dt { font: 600 .72rem/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }

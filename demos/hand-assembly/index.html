@@ -66,6 +66,13 @@ button.on { border-color: var(--accent); background: color-mix(in srgb, var(--ac
 body.embed header, body.embed #backlink { display: none; }
 body.embed .wrap { padding-block: 4px 8px; }
 body.embed .stage { height: clamp(360px, 52vw, 600px); }
+/* mini: only the animated hand, for the side of the project page */
+body.mini header, body.mini .controls, body.mini .facts, body.mini .legend, body.mini .cap, body.mini #backlink { display: none; }
+body.mini .wrap { padding: 0; max-width: none; gap: 0; }
+body.mini .stage { height: 100vh; border: 0; border-radius: 0; }
+body.mini .hud { left: 12px; top: 10px; gap: 3px; }
+body.mini .phase { font-size: 15px; }
+body.mini .phase-sub { font-size: 10.5px; }
 @media (max-width: 760px) {
   .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stage { height: clamp(360px, 62vh, 520px); }
@@ -104,7 +111,7 @@ body.embed .stage { height: clamp(360px, 52vw, 600px); }
   <section class="facts" id="facts" aria-label="Parts in the assembly"></section>
 </div>
 
-<script>if (location.hash === "#embed") document.body.classList.add("embed");</script>
+<script>if (location.hash === "#embed") document.body.classList.add("embed"); if (location.hash === "#mini") document.body.classList.add("mini");</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
