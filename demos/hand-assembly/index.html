@@ -9,7 +9,7 @@
 <title>NeuroGrip Assembly</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: one large 3D stage (exploded → assembled → two turns), a phase timeline under it, then the parts breakdown. Same "lab scope" look as the other NeuroGrip pages. */
+/* Layout: one large 3D stage (exploded → assembled → one turn), a phase timeline under it, then the parts breakdown. Same "lab scope" look as the other NeuroGrip pages. */
 :root {
   --bg: #0a0c11;
   --panel: #10131a;
@@ -81,7 +81,7 @@ body.embed .stage { height: clamp(360px, 52vw, 600px); }
   <header>
     <div>
       <h1>NeuroGrip · Assembly</h1>
-      <p class="sub">The robotic hand from its CAD assembly. The palm stays fixed while the five fingers and the pulley block come in and lock into place, the servos appear last, and then the hand turns twice around its center.</p>
+      <p class="sub">The robotic hand from its CAD assembly. The palm stays fixed while the five fingers come back and lock into place, the servos and pulleys appear at the very end, and then the hand makes one full turn around its center.</p>
     </div>
   </header>
 
@@ -114,9 +114,9 @@ const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 // ---------- timeline (seconds) ----------
 const PH = [
   {id:"ex",   name:"Before assembly", sub:"Exploded view",               label:"Exploded",   dur:1.6},
-  {id:"asm",  name:"Assembling",      sub:"Fingers, pulleys, then servos",       label:"Assembly",   dur:3.6},
+  {id:"asm",  name:"Assembling",      sub:"Fingers return, servos and pulleys last",       label:"Assembly",   dur:3.6},
   {id:"done", name:"After assembly",  sub:"Complete hand",               label:"Assembled",  dur:1.2},
-  {id:"spin", name:"Turntable",       sub:"Two turns around its center", label:"2 × 360°",   dur:7.0},
+  {id:"spin", name:"Turntable",       sub:"One turn around its center",  label:"360°",       dur:4.6},
   {id:"rest", name:"After assembly",  sub:"Complete hand",               label:"Hold",       dur:1.4},
   {id:"back", name:"Disassembling",   sub:"Fingers detach from the palm",   label:"Explode",    dur:2.2}];
 let T0 = 0; PH.forEach(p => { p.t0 = T0; T0 += p.dur; p.t1 = T0; }); const TOTAL = T0;
@@ -197,7 +197,7 @@ async function load(){
     const mesh = new THREE.Mesh(g, mat); mesh.matrixAutoUpdate = false; scene.add(mesh);
     // centroid of this part's vertices (model space)
     let cx=0, cy=0, cz=0, n = f32.length/3; for (let i=0;i<f32.length;i+=3){ cx+=f32[i]; cy+=f32[i+1]; cz+=f32[i+2]; }
-    const group = mm.role === "motor" ? (link.startsWith("pulley.") ? "pulley" : "servo") : FINGERS.includes(link.split(".")[0]) ? "finger:" + link.split(".")[0] : "fixed";
+    const group = mm.role === "motor" ? "servo" : FINGERS.includes(link.split(".")[0]) ? "finger:" + link.split(".")[0] : "fixed";
     parts.push({mesh, link, role: mm.role, group, c: new THREE.Vector3(cx/n, cy/n, cz/n)});
   }
   for (const f of FINGERS) {
@@ -218,14 +218,10 @@ async function load(){
   const ORDER = ["index","middle","ring","pinky","thumb"];
   ORDER.forEach((f, i) => {
     const unit = parts.filter(P => P.group === "finger:" + f), dir = mean(unit).sub(C).normalize();
-    unit.forEach(P => { P.dir = dir; P.win = [.04 + .09*i, .5 + .09*i]; });
+    unit.forEach(P => { P.dir = dir; P.win = [.03 + .08*i, .62 + .08*i]; });
   });
-  // the five pulleys move together as one block, out from the forearm
-  const pul = parts.filter(P => P.group === "pulley"), fore = parts.filter(P => P.group === "fixed" && P.link === "base");
-  const pdir = mean(pul).sub(mean(fore)); pdir.z *= .3; pdir.normalize();
-  pul.forEach(P => { P.dir = pdir; P.win = [.5, .82]; });
   R = Math.max(...parts.map(P => P.w.clone().sub(C).length()));
-  parts.forEach(P => { if (P.dir) P.dist = P.group === "pulley" ? R*.62 : R*.5; });
+  parts.forEach(P => { if (P.dir) P.dist = R*.5; });
   // framing: how far the exploded parts reach from the palm compared with the assembled hand
   const reach = off => Math.max(...parts.filter(P => P.group !== "servo").map(P => P.w.clone().add(P.dir ? P.dir.clone().multiplyScalar(P.dist*off) : new THREE.Vector3()).sub(C).length()));
   EX = {c: C, ratio: reach(1) / reach(0)};
@@ -240,12 +236,12 @@ function poseParts(a, spin){
     .multiply(new THREE.Matrix4().makeTranslation(-C.x, -C.y, -C.z));
   for (const P of parts) {
     const M = G.clone();
-    if (P.dir) {                                                      // fingers and the pulley block slide in
+    if (P.dir) {                                                      // fingers slide in as whole units
       const k = 1 - ease(clamp((a - P.win[0]) / (P.win[1] - P.win[0])));
       const off = P.dir.clone().multiplyScalar(P.dist * k);
       M.multiply(new THREE.Matrix4().makeTranslation(off.x, off.y, off.z));
     } else if (P.group === "servo") {                                 // servos appear only at the very end
-      const u = clamp((a - .86) / .14), sc = u <= 0 ? .0001 : Math.max(.0001, easeOutBack(u));
+      const u = clamp((a - .8) / .12), sc = u <= 0 ? .0001 : Math.max(.0001, easeOutBack(u));
       M.multiply(new THREE.Matrix4().makeTranslation(P.w.x, P.w.y, P.w.z)).multiply(new THREE.Matrix4().makeScale(sc, sc, sc)).multiply(new THREE.Matrix4().makeTranslation(-P.w.x, -P.w.y, -P.w.z));
     }
     P.mesh.matrix.copy(M.multiply(P.rest));
@@ -276,7 +272,7 @@ function frameState(tt){
   if (P.id === "asm")  { g = 1 - ease(u); dz = .9 - .02*ease(u); }
   if (P.id === "done") { g = 0; dz = .96; }
   if (P.id === "spin") { const e = (1 - Math.cos(Math.PI*u)) / 2;                  // smooth start and stop
-                         spin = e * Math.PI * 4;                                     // two full turns
+                         spin = e * Math.PI * 2;                                     // one full turn
                          dz = .96 - .08*Math.sin(Math.PI*u);                          // drift in at mid-turn
                          pt = .22 + .16*Math.sin(Math.PI*2*u); }                     // gentle rise and fall
   if (P.id === "rest") { g = 0; dz = .96; }
@@ -326,14 +322,14 @@ let shownPhase = "";
 function updateHud(S){
   const name = hold === "ex" ? "Before assembly" : hold === "as" ? "After assembly" : S.P.name;
   const subt = hold === "ex" ? "Exploded view" : hold === "as" ? "Complete hand" :
-    S.P.id === "spin" ? `Turn ${Math.min(2, Math.floor(S.spin/(Math.PI*2)) + 1)} of 2 · ${Math.round((S.spin*180/Math.PI) % 360)}°` : S.P.sub;
+    S.P.id === "spin" ? `${Math.round(S.spin*180/Math.PI)}° of 360°` : S.P.sub;
   if (name !== shownPhase) { document.getElementById("phase").textContent = name; shownPhase = name; }
   document.getElementById("phaseSub").textContent = subt;
 }
 function buildFacts(c){
   const servos = parts.filter(P => P.group === "servo").length;
-  const items = [["5", "finger units, each moving in one piece", "#c9cfd8"], ["1", "pulley block with 5 bend pulleys", "var(--pulley)"],
-                 [String(servos), "servos, placed last", "var(--servo)"], ["Fixed", "palm at the center of the view", ""], ["11", "degrees of freedom", ""]];
+  const items = [["5", "finger units, each moving in one piece", "#c9cfd8"], ["0", "screws shown, for a clean view", ""],
+                 [String(servos), "servo and pulley parts, placed last", "var(--servo)"], ["Fixed", "palm at the center of the view", ""], ["11", "degrees of freedom", ""]];
   document.getElementById("facts").innerHTML = items.map(([n, l, col]) => `<div class="fact${col ? "" : " nocolor"}" style="--c:${col || "transparent"}"><b>${n}</b><span>${l}</span></div>`).join("");
 }
 
