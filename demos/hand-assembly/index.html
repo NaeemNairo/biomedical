@@ -81,7 +81,7 @@ body.embed .stage { height: clamp(360px, 52vw, 600px); }
   <header>
     <div>
       <h1>NeuroGrip · Assembly</h1>
-      <p class="sub">Every part of the robotic hand from its CAD assembly: the hand starts fully exploded, comes together part by part, then turns twice around its center so you can see it from every side.</p>
+      <p class="sub">The robotic hand from its CAD assembly. The palm stays fixed while the five fingers and the pulley block come in and lock into place, the servos appear last, and then the hand turns twice around its center.</p>
     </div>
   </header>
 
@@ -89,7 +89,7 @@ body.embed .stage { height: clamp(360px, 52vw, 600px); }
     <canvas id="hand" aria-label="3D model of the NeuroGrip robotic hand; drag to look around"></canvas>
     <div class="hud"><div class="phase" id="phase">Before assembly</div><div class="phase-sub" id="phaseSub">Exploded view</div></div>
     <div class="cap">CAD assembly · drag to look around</div>
-    <div class="legend"><span style="--c:#c9cfd8">printed parts</span><span style="--c:var(--pulley)">bend pulleys</span><span style="--c:var(--servo)">side servos</span><span style="--c:var(--wrist)">wrist servo</span><span style="--c:var(--pcb)">electronics</span><span style="--c:#4a515c">fasteners</span></div>
+    <div class="legend"><span style="--c:#c9cfd8">printed parts</span><span style="--c:var(--pulley)">bend pulleys</span><span style="--c:var(--servo)">side servos</span><span style="--c:var(--wrist)">wrist servo</span><span style="--c:var(--pcb)">electronics</span></div>
     <div class="loading" id="loading">Loading 3D model…</div>
   </section>
 
@@ -114,11 +114,11 @@ const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 // ---------- timeline (seconds) ----------
 const PH = [
   {id:"ex",   name:"Before assembly", sub:"Exploded view",               label:"Exploded",   dur:1.6},
-  {id:"asm",  name:"Assembling",      sub:"Parts move into place",       label:"Assembly",   dur:3.6},
+  {id:"asm",  name:"Assembling",      sub:"Fingers, pulleys, then servos",       label:"Assembly",   dur:3.6},
   {id:"done", name:"After assembly",  sub:"Complete hand",               label:"Assembled",  dur:1.2},
   {id:"spin", name:"Turntable",       sub:"Two turns around its center", label:"2 × 360°",   dur:7.0},
   {id:"rest", name:"After assembly",  sub:"Complete hand",               label:"Hold",       dur:1.4},
-  {id:"back", name:"Disassembling",   sub:"Back to the exploded view",   label:"Explode",    dur:2.2}];
+  {id:"back", name:"Disassembling",   sub:"Fingers detach from the palm",   label:"Explode",    dur:2.2}];
 let T0 = 0; PH.forEach(p => { p.t0 = T0; T0 += p.dur; p.t1 = T0; }); const TOTAL = T0;
 const ease = u => u < .5 ? 4*u*u*u : 1 - Math.pow(-2*u + 2, 3) / 2;           // cubic in-out
 const easeOutBack = u => { const c1 = 1.25, c3 = c1 + 1; return 1 + c3*Math.pow(u-1,3) + c1*Math.pow(u-1,2); };
@@ -193,10 +193,12 @@ async function load(){
       mat = servoBody ? MAT.body : std(mi < 5 ? PULLEY : mi < 10 ? SERVO : WRIST);
     }
     counts[mm.role] = (counts[mm.role] || 0) + 1;
+    if (mm.role === "hw") continue;                                   // screws are left out to keep the view clean
     const mesh = new THREE.Mesh(g, mat); mesh.matrixAutoUpdate = false; scene.add(mesh);
     // centroid of this part's vertices (model space)
     let cx=0, cy=0, cz=0, n = f32.length/3; for (let i=0;i<f32.length;i+=3){ cx+=f32[i]; cy+=f32[i+1]; cz+=f32[i+2]; }
-    parts.push({mesh, link, role: mm.role, c: new THREE.Vector3(cx/n, cy/n, cz/n)});
+    const group = mm.role === "motor" ? (link.startsWith("pulley.") ? "pulley" : "servo") : FINGERS.includes(link.split(".")[0]) ? "finger:" + link.split(".")[0] : "fixed";
+    parts.push({mesh, link, role: mm.role, group, c: new THREE.Vector3(cx/n, cy/n, cz/n)});
   }
   for (const f of FINGERS) {
     const F = HM.fingers[f], K = HM.k2[f];
@@ -208,62 +210,55 @@ async function load(){
     F._2 = Object.fromEntries(Object.entries(F._3).map(([n,v]) => [n, F._to2(v)]));
   }
   const REST = restMatrices();
-  // assembled positions and model center
-  const bb = new THREE.Box3(); scene.children.forEach(o => o.isMesh && bb.expandByObject(o));
-  C = new THREE.Vector3(); bb.getCenter(C);
   for (const P of parts) { P.rest = (REST[P.link] || new THREE.Matrix4()).clone(); P.w = P.c.clone().applyMatrix4(P.rest); }
-  R = Math.max(...parts.map(P => P.w.clone().sub(C).length()));
-  // explosion: each part flies out along its direction from the center (fingers mostly upward, base parts downward and outward)
-  let maxD = 0;
-  parts.forEach((P, i) => {
-    const d = P.w.clone().sub(C); const r = d.length() / R;
-    const up = P.link === "base" ? -.35 : P.link.includes(".") ? .9 : .25;
-    const dir = new THREE.Vector3(d.x, d.y, d.z*.6 + up*R*.5).normalize();
-    const kind = P.role === "hw" ? 1.35 : P.role === "pcb" ? 1.15 : P.role === "motor" ? 1.05 : 1;
-    P.dist = R * (.38 + .55*r) * kind;
-    P.dir = dir;
-    const h = Math.sin(i*12.9898)*43758.5453; const rnd = h - Math.floor(h);
-    P.spinAxis = new THREE.Vector3(Math.sin(i*1.7), Math.cos(i*2.3), Math.sin(i*.9+1)).normalize();
-    P.spinAng = (.35 + .5*rnd) * (i % 2 ? 1 : -1);
-    P.order = r + (P.role === "hw" ? .35 : 0) + rnd*.15;      // inner parts arrive first, fasteners last
-    maxD = Math.max(maxD, P.order);
+  // the palm stays fixed: its center is the center of the screen and of the turntable
+  const pb = new THREE.Box3(); parts.filter(P => P.link === "palm" && P.role === "part").forEach(P => pb.expandByObject(P.mesh)); C = new THREE.Vector3(); pb.getCenter(C);
+  const mean = list => list.reduce((a, P) => a.add(P.w), new THREE.Vector3()).multiplyScalar(1 / list.length);
+  // each finger leaves as one unit, straight out from the palm; fingers go one after another
+  const ORDER = ["index","middle","ring","pinky","thumb"];
+  ORDER.forEach((f, i) => {
+    const unit = parts.filter(P => P.group === "finger:" + f), dir = mean(unit).sub(C).normalize();
+    unit.forEach(P => { P.dir = dir; P.win = [.04 + .09*i, .5 + .09*i]; });
   });
-  parts.forEach(P => P.delay = P.order / maxD);
-  // framing: how much bigger the exploded spread is than the assembled hand, and where its center sits
-  const ext = pts => { const lo = [1e9,1e9,1e9], hi = [-1e9,-1e9,-1e9]; pts.forEach(v => { [v.x,v.y,v.z].forEach((x,i) => { lo[i] = Math.min(lo[i],x); hi[i] = Math.max(hi[i],x); }); });
-    return {c: new THREE.Vector3((lo[0]+hi[0])/2,(lo[1]+hi[1])/2,(lo[2]+hi[2])/2), s: Math.max(hi[2]-lo[2], Math.hypot(hi[0]-lo[0], hi[1]-lo[1])*.75)}; };
-  const A = ext(parts.map(P => P.w)), E = ext(parts.map(P => P.w.clone().add(P.dir.clone().multiplyScalar(P.dist))));
-  EX = {c: E.c, ratio: E.s / A.s};
+  // the five pulleys move together as one block, out from the forearm
+  const pul = parts.filter(P => P.group === "pulley"), fore = parts.filter(P => P.group === "fixed" && P.link === "base");
+  const pdir = mean(pul).sub(mean(fore)); pdir.z *= .3; pdir.normalize();
+  pul.forEach(P => { P.dir = pdir; P.win = [.5, .82]; });
+  R = Math.max(...parts.map(P => P.w.clone().sub(C).length()));
+  parts.forEach(P => { if (P.dir) P.dist = P.group === "pulley" ? R*.62 : R*.5; });
+  // framing: how far the exploded parts reach from the palm compared with the assembled hand
+  const reach = off => Math.max(...parts.filter(P => P.group !== "servo").map(P => P.w.clone().add(P.dir ? P.dir.clone().multiplyScalar(P.dist*off) : new THREE.Vector3()).sub(C).length()));
+  EX = {c: C, ratio: reach(1) / reach(0)};
   ready = true; document.getElementById("loading").hidden = true;
   buildFacts(counts);
 }
 
-// k: 0 = assembled, 1 = fully exploded (per part, after stagger)
-const _T = () => new THREE.Matrix4();
-function poseParts(k, spin){
+// a = assembly progress: 0 = exploded, 1 = assembled. Running it backwards disassembles in reverse order.
+function poseParts(a, spin){
   const G = new THREE.Matrix4().makeTranslation(C.x, C.y, C.z)
     .multiply(new THREE.Matrix4().makeRotationZ(spin))
     .multiply(new THREE.Matrix4().makeTranslation(-C.x, -C.y, -C.z));
   for (const P of parts) {
-    const kp = clamp(P.kp(k));
-    const off = P.dir.clone().multiplyScalar(P.dist * kp);
-    const twist = rotAbout(P.w, P.spinAxis, P.spinAng * kp);
-    P.mesh.matrix.copy(G).multiply(new THREE.Matrix4().makeTranslation(off.x, off.y, off.z)).multiply(twist).multiply(P.rest);
+    const M = G.clone();
+    if (P.dir) {                                                      // fingers and the pulley block slide in
+      const k = 1 - ease(clamp((a - P.win[0]) / (P.win[1] - P.win[0])));
+      const off = P.dir.clone().multiplyScalar(P.dist * k);
+      M.multiply(new THREE.Matrix4().makeTranslation(off.x, off.y, off.z));
+    } else if (P.group === "servo") {                                 // servos appear only at the very end
+      const u = clamp((a - .86) / .14), sc = u <= 0 ? .0001 : Math.max(.0001, easeOutBack(u));
+      M.multiply(new THREE.Matrix4().makeTranslation(P.w.x, P.w.y, P.w.z)).multiply(new THREE.Matrix4().makeScale(sc, sc, sc)).multiply(new THREE.Matrix4().makeTranslation(-P.w.x, -P.w.y, -P.w.z));
+    }
+    P.mesh.matrix.copy(M.multiply(P.rest));
   }
-}
-// staggered amount of explosion for a part given the global amount
-function stagger(P, g, assembling){
-  const span = .45, d = assembling ? P.delay : 1 - P.delay;
-  return clamp((g - d*(1-span)) / span);
 }
 
 // ---------- camera ----------
 let yaw = -Math.PI/2 - .45, pitch = .22, dist = 0, userYaw = 0, userPitch = 0;
 function placeCam(t){
-  const baseDist = R * 4.6;
+  const baseDist = R * 4.9;
   const p = clamp(pitch + userPitch, -1.2, 1.3), y = yaw + userYaw;
   const D = baseDist * dist * (camera.aspect < .9 ? 1.18 : 1);   // a little further back on tall, narrow screens
-  const L = C.clone().add(EX.c.clone().sub(C).multiplyScalar(camG));   // look at the exploded spread's center when apart
+  const L = C;                                                    // always look at the fixed palm
   camera.position.set(L.x + D*Math.cos(p)*Math.cos(y), L.y + D*Math.cos(p)*Math.sin(y), L.z + D*Math.sin(p));
   camera.lookAt(L.x, L.y, L.z); window.target = L;
   keyLight.position.set(camera.position.x + R*2, camera.position.y - R, camera.position.z + R*3);
@@ -291,9 +286,8 @@ function frameState(tt){
 function apply(tt){
   const S = hold === "ex" ? {P:PH[0], g:1, assembling:true, spin:0, dz:.9, pt:.22}
           : hold === "as" ? {P:PH[2], g:0, assembling:true, spin:0, dz:.96, pt:.22} : frameState(tt);
-  parts.forEach(P => P.kp = g => stagger(P, g, S.assembling));
-  poseParts(S.g, S.spin);
-  const zoom = S.dz * (1 + (EX.ratio - 1) * S.g * .8);          // zoom out to fit the exploded spread
+  poseParts(1 - S.g, S.spin);
+  const zoom = S.dz * (1 + (EX.ratio - 1) * S.g * .9);          // zoom out to fit the exploded spread
   dist += (zoom - dist) * (dist ? .12 : 1); pitch += (S.pt - pitch) * .12; camG += (S.g - camG) * (camG ? .12 : 1);
   return S;
 }
@@ -337,9 +331,9 @@ function updateHud(S){
   document.getElementById("phaseSub").textContent = subt;
 }
 function buildFacts(c){
-  const total = parts.length;
-  const items = [[total, "parts in the CAD assembly", ""], [c.part, "3D-printed structural parts", "#c9cfd8"], [c.motor, "motor and servo parts (11 actuators)", "var(--servo)"],
-                 [c.pcb, "electronics parts", "var(--pcb)"], [c.hw, "fasteners", "#4a515c"]];
+  const servos = parts.filter(P => P.group === "servo").length;
+  const items = [["5", "finger units, each moving in one piece", "#c9cfd8"], ["1", "pulley block with 5 bend pulleys", "var(--pulley)"],
+                 [String(servos), "servos, placed last", "var(--servo)"], ["Fixed", "palm at the center of the view", ""], ["11", "degrees of freedom", ""]];
   document.getElementById("facts").innerHTML = items.map(([n, l, col]) => `<div class="fact${col ? "" : " nocolor"}" style="--c:${col || "transparent"}"><b>${n}</b><span>${l}</span></div>`).join("");
 }
 
