@@ -264,15 +264,11 @@ async function load(){
   buildFacts(counts);
 }
 
-// impacts: a short recoil of the whole hand, a camera shake and a cyan flash on the part that hit
+// impacts: a cyan flash on the part that hit (no shaking)
 function impactFx(){
   const rec = new THREE.Vector3(), shake = new THREE.Vector3(); let any = false;
   for (let i = hits.length-1; i >= 0; i--) { const H = hits[i], age = clock - H.t0;
     if (age > .7) { if (H.mat) H.mat.emissiveIntensity = 0; hits.splice(i,1); continue; } any = true;
-    const spring = Math.exp(-age*9) * Math.sin(age*42);
-    if (H.dir) rec.addScaledVector(H.dir, -R * .03 * H.str * spring); else rec.z -= R * .02 * H.str * spring;
-    const sh = R * .012 * H.str * Math.exp(-age*13);
-    shake.x += sh*Math.sin(age*71 + H.ph); shake.y += sh*Math.sin(age*63 + H.ph*2); shake.z += sh*Math.sin(age*57 + H.ph*3);
     if (H.mat) { H.mat.emissive.set("#4dd0e1"); H.mat.emissiveIntensity = .85 * Math.exp(-age*6); } }
   return {rec, shake, any};
 }
